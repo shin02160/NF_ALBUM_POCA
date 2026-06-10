@@ -53,3 +53,46 @@ export async function fetchCards(albumId: string): Promise<PocaCard[]> {
   if (error) throw error;
   return (data as CardRow[]).map(toCard);
 }
+
+// ── 관리자 쓰기 (PRD 4-6) ───────────────────────────────────────────────
+export async function upsertAlbumDb(a: Album): Promise<void> {
+  if (!supabase) return;
+  const row = {
+    album_id: a.id, album_name: a.name, sub: a.sub || null, year: a.year || null,
+    versions: a.versions, header_image: a.headerImage ?? null,
+    bg_image: a.bgImage ?? null, sources: a.sources, sort_order: a.sortOrder,
+  };
+  const { error } = await supabase.from('album_meta').upsert(row);
+  if (error) throw error;
+}
+
+export async function deleteAlbumDb(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('album_meta').delete().eq('album_id', id);
+  if (error) throw error;
+}
+
+export async function upsertCardDb(c: PocaCard): Promise<void> {
+  if (!supabase) return;
+  const row = {
+    id: c.id, album_id: c.albumId, version: c.version, name: c.name,
+    member: c.member, source: c.source, image_url: c.imageUrl, sort_order: c.sortOrder,
+  };
+  const { error } = await supabase.from('album_poca_cards').upsert(row);
+  if (error) throw error;
+}
+
+export async function deleteCardDb(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('album_poca_cards').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function reorderCardsDb(orderedIds: string[]): Promise<void> {
+  if (!supabase) return;
+  const updates = orderedIds.map((id, i) =>
+    supabase.from('album_poca_cards').update({ sort_order: i }).eq('id', id));
+  const results = await Promise.all(updates);
+  const err = results.find((r) => r.error)?.error;
+  if (err) throw err;
+}

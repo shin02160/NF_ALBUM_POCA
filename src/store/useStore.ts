@@ -4,6 +4,7 @@ import type { StatusKey } from '../theme/tokens';
 import { SAMPLE_ALBUMS, SAMPLE_CARDS } from '../data/sampleData';
 import {
   isSupabaseConfigured, fetchAlbums, fetchCards,
+  upsertAlbumDb, deleteAlbumDb, upsertCardDb, deleteCardDb, reorderCardsDb,
 } from '../lib/supabase';
 
 // ── LocalStorage helpers (PRD 3-3) ─────────────────────────────────────
@@ -197,7 +198,7 @@ export const useStore = create<State>((set, get) => ({
   },
   logout: () => set({ isAuthenticated: false }),
 
-  saveAlbum: (a) =>
+  saveAlbum: (a) => {
     set((s) => {
       const exists = s.albums.some((x) => x.id === a.id);
       const albums = exists
@@ -205,29 +206,34 @@ export const useStore = create<State>((set, get) => ({
         : [...s.albums, a];
       albums.sort((x, y) => x.sortOrder - y.sortOrder);
       return { albums };
-    }),
-  deleteAlbum: (id) =>
+    });
+    if (get().usingSupabase) upsertAlbumDb(a).catch((e) => console.error('앨범 저장 실패', e));
+  },
+  deleteAlbum: (id) => {
     set((s) => ({
       albums: s.albums.filter((x) => x.id !== id),
       cards: s.cards.filter((c) => c.albumId !== id),
       selectedAlbumId: s.selectedAlbumId === id ? null : s.selectedAlbumId,
-    })),
+    }));
+    if (get().usingSupabase) deleteAlbumDb(id).catch((e) => console.error('앨범 삭제 실패', e));
+  },
 
-  saveCard: (c) =>
+  saveCard: (c) => {
     set((s) => {
       const exists = s.cards.some((x) => x.id === c.id);
       const cards = exists
         ? s.cards.map((x) => (x.id === c.id ? c : x))
         : [...s.cards, c];
-      // 앨범 count 갱신
       const albums = s.albums.map((al) =>
         al.id === c.albumId
           ? { ...al, count: cards.filter((cc) => cc.albumId === al.id).length }
           : al,
       );
       return { cards, albums };
-    }),
-  deleteCard: (id) =>
+    });
+    if (get().usingSupabase) upsertCardDb(c).catch((e) => console.error('포카 저장 실패', e));
+  },
+  deleteCard: (id) => {
     set((s) => {
       const removed = s.cards.find((c) => c.id === id);
       const cards = s.cards.filter((c) => c.id !== id);
@@ -239,8 +245,10 @@ export const useStore = create<State>((set, get) => ({
           )
         : s.albums;
       return { cards, albums };
-    }),
-  reorderCards: (albumId, orderedIds) =>
+    });
+    if (get().usingSupabase) deleteCardDb(id).catch((e) => console.error('포카 삭제 실패', e));
+  },
+  reorderCards: (albumId, orderedIds) => {
     set((s) => {
       const orderMap = new Map(orderedIds.map((id, i) => [id, i]));
       const cards = s.cards.map((c) =>
@@ -249,5 +257,7 @@ export const useStore = create<State>((set, get) => ({
           : c,
       );
       return { cards };
-    }),
+    });
+    if (get().usingSupabase) reorderCardsDb(orderedIds).catch((e) => console.error('정렬 저장 실패', e));
+  },
 }));
