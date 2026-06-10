@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NF ALBUM POCA — Hi-Fi</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/packages/pretendard-jp/dist/web/static/pretendard-jp.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="core.jsx"></script>
+  <script type="text/babel" src="screens-mobile.jsx"></script>
+  <script type="text/babel" src="screens-photobook-dash.jsx"></script>
+  <script type="text/babel" src="screens-admin.jsx"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1c1c1e; overflow: hidden; }
+    #root { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard } = window;
+
+    function App() {
+      const P = 812; // phone height
+      return (
+        <DesignCanvas>
+          <DCSection id="explore" title="모바일 · 탐색" subtitle="앨범 선택 → 포카 목록 (상태 테두리: 소장 파랑 / 구해요 빨강 / 교환가능 노랑)">
+            <DCArtboard id="album"  label="앨범 선택"        width={375} height={P}><window.NFAlbumSelect/></DCArtboard>
+            <DCArtboard id="list"   label="포카 목록 · 리스트" width={375} height={P}><window.NFPocaList/></DCArtboard>
+            <DCArtboard id="grid"   label="포카 목록 · 그리드" width={375} height={P}><window.NFPocaGrid/></DCArtboard>
+          </DCSection>
+          <DCSection id="status-filter" title="모바일 · 상태 & 필터" subtitle="카드 탭 → 상태 선택 바텀시트 · 버전/멤버/구매처 복수 필터">
+            <DCArtboard id="sheet"  label="상태 선택 바텀시트" width={375} height={P}><window.NFStatusSheet/></DCArtboard>
+            <DCArtboard id="filter" label="필터 모달"          width={375} height={P}><window.NFFilterModal tab={1}/></DCArtboard>
+          </DCSection>
+          <DCSection id="photobook" title="모바일 · 포토북" subtitle="상태 테두리 유지 · 드래그 순서 변경 · 4열 PNG 내보내기">
+            <DCArtboard id="book-edit"   label="포토북 편집"    width={375} height={P}><window.NFPhotobookEdit/></DCArtboard>
+            <DCArtboard id="book-export" label="내보내기 · 4열"  width={375} height={P}><window.NFPhotobookExport/></DCArtboard>
+          </DCSection>
+          <DCSection id="dashboard" title="모바일 · 대시보드" subtitle="요약 · 멤버별 · 출처별 · 매체/종류 · 연도별 추이 · 최근 추가">
+            <DCArtboard id="dash" label="대시보드" width={375} height={P}><window.NFDashboard/></DCArtboard>
+          </DCSection>
+          <DCSection id="admin" title="관리자 (데스크탑)" subtitle="6자리 인증 · 앨범 관리(버전/구매처/이미지) · 포카 관리(CRUD/정렬)">
+            <DCArtboard id="login"     label="관리자 로그인"   width={1280} height={860}><window.NFAdminLogin/></DCArtboard>
+            <DCArtboard id="albums"    label="앨범 관리"       width={1280} height={860}><window.NFAdminAlbums/></DCArtboard>
+            <DCArtboard id="pocas"     label="포카 관리"       width={1280} height={860}><window.NFAdminPocas/></DCArtboard>
+            <DCArtboard id="poca-edit" label="포카 추가/편집"  width={1280} height={860}><window.NFAdminPocaEdit/></DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
