@@ -32,11 +32,17 @@ create index if not exists idx_cards_album on album_poca_cards(album_id, sort_or
 alter table album_meta enable row level security;
 alter table album_poca_cards enable row level security;
 
+-- 공개 읽기
 create policy "public read album_meta"
   on album_meta for select using (true);
 create policy "public read album_poca_cards"
   on album_poca_cards for select using (true);
 
--- NOTE: 관리자 쓰기(insert/update/delete)는 PRD상 6자리 PIN(VITE_ADMIN_PASSWORD)으로
--- 클라이언트에서 게이트. 운영 강화 시 Supabase Auth + 별도 write 정책 권장.
+-- 관리자 쓰기: anon 키 + 클라이언트 PIN 게이트(PRD 4-6). 단독 관리자/소규모 팬앱 전제.
+-- 운영 강화 시 Supabase Auth + role 기반 정책으로 교체 권장.
+create policy "anon write album_meta" on album_meta
+  for all to anon using (true) with check (true);
+create policy "anon write album_poca_cards" on album_poca_cards
+  for all to anon using (true) with check (true);
+
 -- 이미지: Supabase Storage 공개 버킷(예: poca-images) 생성 후 image_url에 public URL 저장.
