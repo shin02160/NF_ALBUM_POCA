@@ -4,6 +4,7 @@ import { T, MC, MEMBERS } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
 import { useStore } from '../../store/useStore';
+import { uploadImage } from '../../lib/supabase';
 import type { Album } from '../../types';
 
 const fieldStyle: React.CSSProperties = { height: 42, borderRadius: 10, border: `1px solid ${T.b}`, background: T.s, padding: '0 14px', fontSize: 14, color: T.t, width: '100%', fontFamily: T.f, outline: 'none' };
@@ -133,11 +134,18 @@ function ChipEditor({ label, items, onChange, addLabel, active }: { label: strin
 
 function ImageUpload({ label, value, onChange, hint, preview }: { label: string; value?: string | null; onChange: (v: string | null) => void; hint: string; preview?: boolean }) {
   const ref = useRef<HTMLInputElement>(null);
-  const onFile = (f: File | undefined) => {
+  const [uploading, setUploading] = useState(false);
+  const onFile = async (f: File | undefined) => {
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
-    reader.readAsDataURL(f);
+    setUploading(true);
+    try {
+      onChange(await uploadImage(f, 'albums'));
+    } catch (e) {
+      console.error('이미지 업로드 실패', e);
+      alert('이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
   };
   const bg = value
     ? `url(${value}) center/cover`
@@ -146,11 +154,11 @@ function ImageUpload({ label, value, onChange, hint, preview }: { label: string;
   return (
     <div>
       <Label>{label}</Label>
-      <div onClick={() => ref.current?.click()} style={{ height: 130, borderRadius: 12, border: `1.5px dashed ${T.b}`, background: bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden', position: 'relative', cursor: 'pointer' }}>
+      <div onClick={() => !uploading && ref.current?.click()} style={{ height: 130, borderRadius: 12, border: `1.5px dashed ${T.b}`, background: bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden', position: 'relative', cursor: uploading ? 'default' : 'pointer' }}>
         {!value && !light && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, #1a1a2e, #3366FF)', opacity: 0.92 }} />}
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <Icon.upload c={value || !light ? '#fff' : T.tl} sz={22} />
-          <span style={{ fontSize: 12, color: value || !light ? '#fff' : T.tm, fontWeight: 600 }}>{value ? '이미지 교체' : `${label} 업로드`}</span>
+          <span style={{ fontSize: 12, color: value || !light ? '#fff' : T.tm, fontWeight: 600 }}>{uploading ? '업로드 중…' : value ? '이미지 교체' : `${label} 업로드`}</span>
           <span style={{ fontSize: 10, color: value || !light ? 'rgba(255,255,255,0.7)' : T.tl }}>{hint}</span>
         </div>
         <input ref={ref} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />

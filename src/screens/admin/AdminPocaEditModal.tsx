@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { T, MC, MEMBERS } from '../../theme/tokens';
 import { Icon } from '../../components/icons';
 import { useStore } from '../../store/useStore';
+import { uploadImage } from '../../lib/supabase';
 import type { Album, PocaCard } from '../../types';
 
 const fieldStyle: React.CSSProperties = { height: 42, borderRadius: 10, border: `1px solid ${T.b}`, background: T.s, padding: '0 14px', fontSize: 14, color: T.t, width: '100%', fontFamily: T.f, outline: 'none' };
@@ -17,12 +18,19 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
   const [version, setVersion] = useState(card?.version ?? album.versions[0] ?? '');
   const [source, setSource] = useState(card?.source ?? album.sources[0] ?? '');
   const [imageUrl, setImageUrl] = useState<string | null>(card?.imageUrl ?? null);
+  const [uploading, setUploading] = useState(false);
 
-  const onFile = (f: File | undefined) => {
+  const onFile = async (f: File | undefined) => {
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setImageUrl(reader.result as string);
-    reader.readAsDataURL(f);
+    setUploading(true);
+    try {
+      setImageUrl(await uploadImage(f, `cards/${album.id}`));
+    } catch (e) {
+      console.error('이미지 업로드 실패', e);
+      alert('이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const onSave = () => {
@@ -48,8 +56,8 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
           {/* Thumbnail */}
           <div style={{ width: 150, flexShrink: 0 }}>
             <Label>썸네일</Label>
-            <div onClick={() => ref.current?.click()} style={{ width: 150, aspectRatio: '2/3', borderRadius: 12, border: `1.5px dashed ${T.b}`, background: imageUrl ? `url(${imageUrl}) center top/cover` : T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', overflow: 'hidden' }}>
-              {!imageUrl && <><Icon.upload c={T.tl} sz={24} /><span style={{ fontSize: 12, color: T.tm, fontWeight: 600 }}>이미지 업로드</span><span style={{ fontSize: 10, color: T.tl }}>2:3 비율</span></>}
+            <div onClick={() => !uploading && ref.current?.click()} style={{ width: 150, aspectRatio: '2/3', borderRadius: 12, border: `1.5px dashed ${T.b}`, background: imageUrl ? `url(${imageUrl}) center top/cover` : T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: uploading ? 'default' : 'pointer', overflow: 'hidden' }}>
+              {uploading ? <span style={{ fontSize: 12, color: T.tm, fontWeight: 600 }}>업로드 중…</span> : !imageUrl && <><Icon.upload c={T.tl} sz={24} /><span style={{ fontSize: 12, color: T.tm, fontWeight: 600 }}>이미지 업로드</span><span style={{ fontSize: 10, color: T.tl }}>2:3 비율</span></>}
             </div>
             <input ref={ref} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
           </div>

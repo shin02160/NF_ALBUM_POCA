@@ -88,6 +88,25 @@ export async function deleteCardDb(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// 이미지 업로드: Supabase Storage 공개 버킷(poca-images). 미설정 시 dataURL 폴백.
+export async function uploadImage(file: File, folder = 'uploads'): Promise<string> {
+  if (!supabase) {
+    return await new Promise<string>((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage
+    .from('poca-images')
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  return supabase.storage.from('poca-images').getPublicUrl(path).data.publicUrl;
+}
+
 export async function reorderCardsDb(orderedIds: string[]): Promise<void> {
   if (!supabase) return;
   const updates = orderedIds.map((id, i) =>
