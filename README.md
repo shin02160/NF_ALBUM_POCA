@@ -26,12 +26,14 @@ npm run build          # 프로덕션 빌드 (tsc + vite)
 
 ```
 VITE_SUPABASE_URL=https://[project].supabase.co
-VITE_SUPABASE_KEY=sb_publishable_***   # anon 키
-VITE_ADMIN_PASSWORD=000000             # 6자리 (미설정 시 기본 000000)
+VITE_SUPABASE_KEY=sb_publishable_***   # anon(publishable) 키 — 읽기 전용
 ```
 
+> 관리자 PIN은 클라이언트 env에 두지 않습니다. DB(`admin_config`)에 해시로 저장되고
+> Edge Function(`poca-admin`)에서만 대조합니다. (보안 모델 섹션 참조)
+>
 > Supabase 미설정/미연결 시 `src/data/sampleData.ts`의 샘플 앨범·포카로 동작하며,
-> 소장 상태·포토북은 LocalStorage에 저장됩니다.
+> 소장 상태·포토북은 LocalStorage에 저장됩니다. (이 경우 관리자는 6자리 형식만 확인)
 
 ## 라우트
 
@@ -53,7 +55,21 @@ VITE_ADMIN_PASSWORD=000000             # 6자리 (미설정 시 기본 000000)
 
 ## Supabase 설정
 
-`supabase/schema.sql`을 Supabase SQL Editor에서 실행하면 `album_meta` / `album_poca_cards` 테이블과 공개 읽기 RLS가 생성됩니다. 이미지용 공개 Storage 버킷(예: `poca-images`)을 만들고 URL을 `image_url`/`header_image`/`bg_image`에 저장하세요.
+1. `supabase/schema.sql` 실행 → `album_meta`/`album_poca_cards` + 공개 읽기 RLS
+2. `supabase/harden.sql` 실행 → 보안 하드닝 (아래 참조)
+3. 이미지용 공개 Storage 버킷 `poca-images` 생성
+4. Edge Function 배포: `supabase/functions/poca-admin` (verify_jwt 비활성 — 커스텀 PIN 인증)
+
+## 보안 모델 (하드닝 적용)
+
+- **읽기**: 클라이언트는 anon(publishable) 키로 **읽기 전용** (RLS: 공개 SELECT만 허용).
+- **쓰기**: 관리자 CRUD/이미지 업로드는 전부 **Edge Function `poca-admin`(service_role)** 경유.
+  anon 키로는 DB/Storage에 **직접 쓸 수 없음** (RLS 차단).
+- **관리자 PIN**: 클라이언트 번들·env에 **존재하지 않음**. `admin_config`에 bcrypt 해시로 저장,
+  Edge Function이 서버에서 대조. 검증 성공 시 PIN은 브라우저 메모리에만 보관(세션, 새로고침 시 소멸).
+- **PIN 변경**: Supabase SQL Editor에서 `select set_admin_pin('새6자리');`
+- 잔여 리스크: 6자리 PIN은 이론상 무차별 대입 가능(함수에 실패 지연 적용). 더 강한 보안이 필요하면
+  Supabase Auth(관리자 계정) + role 기반 RLS로 확장 권장.
 
 ## 디자인 토큰
 

@@ -4,7 +4,7 @@ import { T, MC, MEMBERS } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
 import { useStore } from '../../store/useStore';
-import { uploadImage } from '../../lib/supabase';
+import { uploadImage } from '../../lib/adminApi';
 import type { Album } from '../../types';
 
 const fieldStyle: React.CSSProperties = { height: 42, borderRadius: 10, border: `1px solid ${T.b}`, background: T.s, padding: '0 14px', fontSize: 14, color: T.t, width: '100%', fontFamily: T.f, outline: 'none' };

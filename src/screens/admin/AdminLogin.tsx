@@ -12,6 +12,7 @@ export function AdminLogin() {
   const navigate = useNavigate();
   const [pin, setPin] = useState('');
   const [shake, setShake] = useState(false);
+  const [checking, setChecking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (isAuth) navigate('/admin/albums', { replace: true }); }, [isAuth, navigate]);
@@ -19,13 +20,18 @@ export function AdminLogin() {
 
   // 6자리 완성 시 자동 인증
   useEffect(() => {
-    if (pin.length === 6) {
-      const ok = authenticate(pin);
+    if (pin.length !== 6) return;
+    let cancelled = false;
+    setChecking(true);
+    authenticate(pin).then((ok) => {
+      if (cancelled) return;
+      setChecking(false);
       if (!ok) {
         setShake(true);
         setTimeout(() => { setShake(false); setPin(''); }, 420);
       }
-    }
+    });
+    return () => { cancelled = true; };
   }, [pin, authenticate]);
 
   const digits = Array.from({ length: 6 }, (_, i) => pin[i] ?? '');
@@ -60,8 +66,8 @@ export function AdminLogin() {
             style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
           />
         </div>
-        <button onClick={() => authenticate(pin)} style={{ width: '100%', height: 52, borderRadius: 14, background: T.p, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(51,102,255,0.28)', border: 'none', cursor: 'pointer', fontFamily: T.f }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>인증하기</span>
+        <button onClick={() => authenticate(pin)} disabled={checking} style={{ width: '100%', height: 52, borderRadius: 14, background: T.p, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(51,102,255,0.28)', border: 'none', cursor: checking ? 'default' : 'pointer', fontFamily: T.f, opacity: checking ? 0.7 : 1 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{checking ? '확인 중…' : '인증하기'}</span>
         </button>
         <p style={{ fontSize: 11, color: T.tl, marginTop: 16 }}>세션 내 유지 · 새로고침 시 재입력</p>
       </div>
