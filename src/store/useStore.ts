@@ -2,11 +2,11 @@ import { create } from 'zustand';
 import type { Album, PocaCard, ViewMode, PocaStatusMap, Filters } from '../types';
 import type { StatusKey } from '../theme/tokens';
 import { SAMPLE_ALBUMS, SAMPLE_CARDS } from '../data/sampleData';
-import { isSupabaseConfigured, fetchAlbums, fetchCards } from '../lib/supabase';
 import {
-  adminVerify, clearAdminPin,
-  dbSaveAlbum, dbDeleteAlbum, dbSaveCard, dbDeleteCard, dbReorderCards,
-} from '../lib/adminApi';
+  isSupabaseConfigured, fetchAlbums, fetchCards,
+  signInAdmin, signOutAdmin, hasAdminSession,
+  upsertAlbumDb, deleteAlbumDb, upsertCardDb, deleteCardDb, reorderCardsDb,
+} from '../lib/supabase';
 
 // ── LocalStorage helpers (PRD 3-3) ─────────────────────────────────────
 const LS_STATUS = 'poca_status';
@@ -73,8 +73,9 @@ interface State {
   removeFromPhotobook: (cardId: string) => void;
   reorderPhotobook: (ids: string[]) => void;
 
-  // 관리자
-  authenticate: (pw: string) => Promise<boolean>;
+  // 관리자 (Supabase Auth)
+  authenticate: (email: string, password: string) => Promise<boolean>;
+  hydrateAuth: () => Promise<void>;
   logout: () => void;
   saveAlbum: (a: Album) => void;
   deleteAlbum: (id: string) => void;
@@ -190,13 +191,16 @@ export const useStore = create<State>((set, get) => ({
     set({ photobook: ids });
   },
 
-  // ── 관리자 ── (PIN 검증은 서버 Edge Function에서 해시 대조; 번들에 비번 없음)
-  authenticate: async (pw) => {
-    const ok = await adminVerify(pw);
+  // ── 관리자 (Supabase Auth) ── 세션 JWT로 쓰기 → RLS is_admin() 허용
+  authenticate: async (email, password) => {
+    const ok = await signInAdmin(email, password);
     if (ok) set({ isAuthenticated: true });
     return ok;
   },
-  logout: () => { clearAdminPin(); set({ isAuthenticated: false }); },
+  hydrateAuth: async () => {
+    if (await hasAdminSession()) set({ isAuthenticated: true });
+  },
+  logout: () => { void signOutAdmin(); set({ isAuthenticated: false }); },
 
   saveAlbum: (a) => {
     set((s) => {
@@ -207,7 +211,7 @@ export const useStore = create<State>((set, get) => ({
       albums.sort((x, y) => x.sortOrder - y.sortOrder);
       return { albums };
     });
-    if (get().usingSupabase) dbSaveAlbum(a).catch((e) => console.error('앨범 저장 실패', e));
+    if (get().usingSupabase) upsertAlbumDb(a).catch((e) => console.error('앨범 저장 실패', e));
   },
   deleteAlbum: (id) => {
     set((s) => ({
@@ -215,7 +219,7 @@ export const useStore = create<State>((set, get) => ({
       cards: s.cards.filter((c) => c.albumId !== id),
       selectedAlbumId: s.selectedAlbumId === id ? null : s.selectedAlbumId,
     }));
-    if (get().usingSupabase) dbDeleteAlbum(id).catch((e) => console.error('앨범 삭제 실패', e));
+    if (get().usingSupabase) deleteAlbumDb(id).catch((e) => console.error('앨범 삭제 실패', e));
   },
 
   saveCard: (c) => {
@@ -231,7 +235,7 @@ export const useStore = create<State>((set, get) => ({
       );
       return { cards, albums };
     });
-    if (get().usingSupabase) dbSaveCard(c).catch((e) => console.error('포카 저장 실패', e));
+    if (get().usingSupabase) upsertCardDb(c).catch((e) => console.error('포카 저장 실패', e));
   },
   deleteCard: (id) => {
     set((s) => {
@@ -246,7 +250,7 @@ export const useStore = create<State>((set, get) => ({
         : s.albums;
       return { cards, albums };
     });
-    if (get().usingSupabase) dbDeleteCard(id).catch((e) => console.error('포카 삭제 실패', e));
+    if (get().usingSupabase) deleteCardDb(id).catch((e) => console.error('포카 삭제 실패', e));
   },
   reorderCards: (albumId, orderedIds) => {
     set((s) => {
@@ -258,6 +262,6 @@ export const useStore = create<State>((set, get) => ({
       );
       return { cards };
     });
-    if (get().usingSupabase) dbReorderCards(orderedIds).catch((e) => console.error('정렬 저장 실패', e));
+    if (get().usingSupabase) reorderCardsDb(orderedIds).catch((e) => console.error('정렬 저장 실패', e));
   },
 }));

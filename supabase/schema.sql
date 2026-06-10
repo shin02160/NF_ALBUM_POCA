@@ -1,5 +1,7 @@
 -- ── NF ALBUM POCA · Supabase 스키마 (PRD 3-2) ──────────────────────────
--- Supabase SQL Editor에서 실행. anon 키로 읽기, 관리자 쓰기는 앱단 PIN으로 게이트.
+-- 1) 이 파일 실행 → 테이블 + 공개 읽기 RLS
+-- 2) auth_rls.sql 실행 → 관리자(Auth) role 기반 쓰기 정책
+-- 읽기: anon(공개). 쓰기: 인증된 관리자(Supabase Auth)만 (auth_rls.sql 참조).
 
 -- 앨범 메타
 create table if not exists album_meta (
@@ -28,21 +30,13 @@ create table if not exists album_poca_cards (
 
 create index if not exists idx_cards_album on album_poca_cards(album_id, sort_order);
 
--- RLS: 공개 읽기 (anon). 쓰기는 service_role 또는 별도 정책으로 제한.
+-- RLS: 공개 읽기만. 쓰기 정책은 auth_rls.sql에서 관리자(Auth)로 제한.
 alter table album_meta enable row level security;
 alter table album_poca_cards enable row level security;
 
--- 공개 읽기
 create policy "public read album_meta"
   on album_meta for select using (true);
 create policy "public read album_poca_cards"
   on album_poca_cards for select using (true);
 
--- 관리자 쓰기: anon 키 + 클라이언트 PIN 게이트(PRD 4-6). 단독 관리자/소규모 팬앱 전제.
--- 운영 강화 시 Supabase Auth + role 기반 정책으로 교체 권장.
-create policy "anon write album_meta" on album_meta
-  for all to anon using (true) with check (true);
-create policy "anon write album_poca_cards" on album_poca_cards
-  for all to anon using (true) with check (true);
-
--- 이미지: Supabase Storage 공개 버킷(예: poca-images) 생성 후 image_url에 public URL 저장.
+-- 이미지: Supabase Storage 공개 버킷(poca-images). 공개 read + 관리자 write는 auth_rls.sql.

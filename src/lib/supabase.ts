@@ -9,7 +9,7 @@ const key = import.meta.env.VITE_SUPABASE_KEY as string | undefined;
 export const isSupabaseConfigured = Boolean(url && key && !url.includes('[project]'));
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(url!, key!)
+  ? createClient(url!, key!, { auth: { persistSession: true, autoRefreshToken: true } })
   : null;
 
 // DB row ↔ 앱 모델 매핑
@@ -54,4 +54,74 @@ export async function fetchCards(albumId: string): Promise<PocaCard[]> {
   return (data as CardRow[]).map(toCard);
 }
 
-// 관리자 쓰기는 anon 키로 직접 하지 않는다(RLS 읽기 전용). 모두 Edge Function 경유 → src/lib/adminApi.ts
+// ── 관리자 인증 (Supabase Auth) ─────────────────────────────────────────
+// 관리자 = 실제 Auth 계정. 로그인 세션의 JWT로 쓰기 → RLS의 is_admin()이 허용.
+export async function signInAdmin(email: string, password: string): Promise<boolean> {
+  if (!supabase) return /\S+@\S+/.test(email); // 로컬(샘플) 모드: 형식만 확인
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  return !error;
+}
+export async function signOutAdmin(): Promise<void> {
+  await supabase?.auth.signOut();
+}
+export async function hasAdminSession(): Promise<boolean> {
+  if (!supabase) return false;
+  const { data } = await supabase.auth.getSession();
+  return Boolean(data.session);
+}
+
+// ── 관리자 쓰기 (인증 세션 + RLS is_admin()로 허용) ─────────────────────
+function requireClient(): SupabaseClient {
+  if (!supabase) throw new Error('Supabase 미설정');
+  return supabase;
+}
+
+export async function upsertAlbumDb(a: Album): Promise<void> {
+  const { error } = await requireClient().from('album_meta').upsert({
+    album_id: a.id, album_name: a.name, sub: a.sub || null, year: a.year || null,
+    versions: a.versions, header_image: a.headerImage ?? null,
+    bg_image: a.bgImage ?? null, sources: a.sources, sort_order: a.sortOrder,
+  });
+  if (error) throw error;
+}
+export async function deleteAlbumDb(id: string): Promise<void> {
+  const { error } = await requireClient().from('album_meta').delete().eq('album_id', id);
+  if (error) throw error;
+}
+export async function upsertCardDb(c: PocaCard): Promise<void> {
+  const { error } = await requireClient().from('album_poca_cards').upsert({
+    id: c.id, album_id: c.albumId, version: c.version, name: c.name,
+    member: c.member, source: c.source, image_url: c.imageUrl, sort_order: c.sortOrder,
+  });
+  if (error) throw error;
+}
+export async function deleteCardDb(id: string): Promise<void> {
+  const { error } = await requireClient().from('album_poca_cards').delete().eq('id', id);
+  if (error) throw error;
+}
+export async function reorderCardsDb(orderedIds: string[]): Promise<void> {
+  const client = requireClient();
+  const results = await Promise.all(
+    orderedIds.map((id, i) => client.from('album_poca_cards').update({ sort_order: i }).eq('id', id)),
+  );
+  const err = results.find((r) => r.error)?.error;
+  if (err) throw err;
+}
+
+// 이미지 업로드: 인증 관리자 → Storage 직접 업로드. 미설정 시 dataURL 폴백.
+export async function uploadImage(file: File, folder = 'uploads'): Promise<string> {
+  if (!supabase) {
+    return await new Promise<string>((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage
+    .from('poca-images').upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  return supabase.storage.from('poca-images').getPublicUrl(path).data.publicUrl;
+}

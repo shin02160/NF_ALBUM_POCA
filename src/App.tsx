@@ -12,9 +12,10 @@ import { AdminPocas } from './screens/admin/AdminPocas';
 
 export default function App() {
   const loadData = useStore((s) => s.loadData);
+  const hydrateAuth = useStore((s) => s.hydrateAuth);
   const loading = useStore((s) => s.loading);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); hydrateAuth(); }, [loadData, hydrateAuth]);
 
   if (loading) {
     return (

@@ -41,7 +41,7 @@ VITE_SUPABASE_KEY=sb_publishable_***   # anon(publishable) 키 — 읽기 전용
 |---|---|
 | `/` | 앨범 선택 (모바일) |
 | `/list` `/dash` `/book` | 포카 목록 · 대시보드 · 포토북 (하단 탭) |
-| `/admin` | 관리자 로그인 (6자리 PIN) |
+| `/admin` | 관리자 로그인 (Supabase Auth · 이메일/비번) |
 | `/admin/albums` `/admin/pocas` | 앨범 관리 · 포카 관리 |
 
 ## 구현된 기능 (PRD 4장)
@@ -51,25 +51,26 @@ VITE_SUPABASE_KEY=sb_publishable_***   # anon(publishable) 키 — 읽기 전용
 - **상태 기록**: 카드 탭 → 바텀시트 → 소장(파랑)/구해요(빨강)/교환가능(노랑) 토글, 즉시 LocalStorage 저장, 썸네일 테두리 색 반영
 - **대시보드**: [일반] 전체/버전별/판매처별 현황 + [사용자 현황] 소장률 도넛·버전별·판매처별·멤버별 (실시간 계산)
 - **포토북**: 담기/삭제, 드래그 순서 변경(@dnd-kit), 4열 PNG export(html2canvas) + 공유(Web Share API), LocalStorage 영속화
-- **관리자**: PIN 인증(자동 제출/실패 shake), 앨범 CRUD(버전·구매처 칩, 헤더/배경 이미지 업로드), 포카 CRUD(테이블 + 드래그 정렬 + 추가/편집 모달)
+- **관리자**: Supabase Auth(이메일/비번) 로그인, 앨범 CRUD(버전·구매처 칩, 헤더/배경 이미지 업로드), 포카 CRUD(테이블 + 드래그 정렬 + 추가/편집 모달)
 
 ## Supabase 설정
 
 1. `supabase/schema.sql` 실행 → `album_meta`/`album_poca_cards` + 공개 읽기 RLS
-2. `supabase/harden.sql` 실행 → 보안 하드닝 (아래 참조)
-3. 이미지용 공개 Storage 버킷 `poca-images` 생성
-4. Edge Function 배포: `supabase/functions/poca-admin` (verify_jwt 비활성 — 커스텀 PIN 인증)
+2. 공개 Storage 버킷 `poca-images` 생성 (+ 공개 read 정책)
+3. `supabase/auth_rls.sql` 실행 → 관리자 role 기반 쓰기 정책 (`admin_users`, `is_admin()`)
+4. **관리자 계정 생성**: Authentication → Users → Add user (Auto Confirm), 이메일을 `admin_users`와 일치
+5. (권장) Authentication → "Allow new users to sign up" 비활성
 
-## 보안 모델 (하드닝 적용)
+## 보안 모델 (Supabase Auth + role RLS)
 
-- **읽기**: 클라이언트는 anon(publishable) 키로 **읽기 전용** (RLS: 공개 SELECT만 허용).
-- **쓰기**: 관리자 CRUD/이미지 업로드는 전부 **Edge Function `poca-admin`(service_role)** 경유.
-  anon 키로는 DB/Storage에 **직접 쓸 수 없음** (RLS 차단).
-- **관리자 PIN**: 클라이언트 번들·env에 **존재하지 않음**. `admin_config`에 bcrypt 해시로 저장,
-  Edge Function이 서버에서 대조. 검증 성공 시 PIN은 브라우저 메모리에만 보관(세션, 새로고침 시 소멸).
-- **PIN 변경**: Supabase SQL Editor에서 `select set_admin_pin('새6자리');`
-- 잔여 리스크: 6자리 PIN은 이론상 무차별 대입 가능(함수에 실패 지연 적용). 더 강한 보안이 필요하면
-  Supabase Auth(관리자 계정) + role 기반 RLS로 확장 권장.
+- **읽기**: 클라이언트 anon(publishable) 키로 **읽기 전용** (RLS: 공개 SELECT만).
+- **쓰기**: 관리자가 **Supabase Auth로 로그인**한 세션 JWT로 직접 수행. RLS의 `is_admin()`
+  (= JWT 이메일이 `admin_users`에 있는지)이 통과해야만 INSERT/UPDATE/DELETE 허용.
+  → **비로그인/일반 사용자는 DB·Storage에 쓸 수 없음** (RLS 차단, 검증됨).
+- **비밀번호**: Supabase Auth가 관리(해시·세션·리프레시). 앱 번들/`env` 어디에도 비번 없음.
+- **세션**: 로그인 후 브라우저에 안전 보관 → 새로고침해도 유지. 로그아웃 시 폐기.
+- **관리자 이메일 변경**: `delete from admin_users; insert into admin_users(email) values ('새이메일');`
+- 이전 PIN/Edge Function 방식은 폐기됨(공유 비밀 제거).
 
 ## 디자인 토큰
 
