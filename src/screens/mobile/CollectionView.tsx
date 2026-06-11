@@ -86,7 +86,7 @@ export function CollectionView() {
                 <button
                   key={member}
                   onClick={() => card && openStatusSheet(card.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}`, width: '100%', background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: card ? 'pointer' : 'default', textAlign: 'left', fontFamily: T.f }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${T.bl}`, cursor: card ? 'pointer' : 'default', textAlign: 'left', fontFamily: T.f }}
                 >
                   <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
