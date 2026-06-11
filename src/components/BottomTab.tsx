@@ -1,22 +1,23 @@
-// ── 하단 탭바: 목록 / 대시보드 / 포토북 — core.jsx BottomTab ───────────
+// ── 하단 탭바: 모아보기 / 앨범별 / 대시보드 / 포토북 — PRD v0.8 ─────────
 import { T } from '../theme/tokens';
 import { Icon } from './icons';
 
-export type TabId = 'list' | 'dash' | 'book';
+export type TabId = 'collection' | 'album' | 'dash' | 'book';
 
 const tabs: { id: TabId; label: string; Ico: (p: { c?: string; sz?: number }) => React.ReactElement }[] = [
-  { id: 'list', label: '목록', Ico: Icon.home },
-  { id: 'dash', label: '대시보드', Ico: Icon.chart },
-  { id: 'book', label: '포토북', Ico: Icon.book },
+  { id: 'collection', label: '모아보기', Ico: Icon.grid },
+  { id: 'album',      label: '앨범별',   Ico: Icon.list },
+  { id: 'dash',       label: '대시보드', Ico: Icon.chart },
+  { id: 'book',       label: '포토북',   Ico: Icon.book },
 ];
 
 export function BottomTab({ active, bookCount = 0, onChange }: { active: TabId; bookCount?: number; onChange: (id: TabId) => void }) {
   return (
-    <div style={{ height: 64, background: T.s, borderTop: `1px solid ${T.b}`, display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingBottom: 6 }}>
+    <div style={{ height: 60, background: T.s, borderTop: `1px solid ${T.b}`, display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingBottom: 4 }}>
       {tabs.map(({ id, label, Ico }) => {
         const on = id === active;
         return (
-          <button key={id} onClick={() => onChange(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, position: 'relative', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.f }}>
+          <button key={id} onClick={() => onChange(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, position: 'relative', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.f }}>
             <div style={{ position: 'relative' }}>
               <Ico c={on ? T.p : T.tl} />
               {id === 'book' && bookCount > 0 && (
@@ -25,7 +26,7 @@ export function BottomTab({ active, bookCount = 0, onChange }: { active: TabId; 
                 </div>
               )}
             </div>
-            <span style={{ fontSize: 10.5, fontWeight: on ? 700 : 500, color: on ? T.p : T.tl }}>{label}</span>
+            <span style={{ fontSize: 10, fontWeight: on ? 700 : 500, color: on ? T.p : T.tl }}>{label}</span>
           </button>
         );
       })}

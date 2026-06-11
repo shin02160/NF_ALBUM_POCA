@@ -103,7 +103,6 @@ export function Dashboard() {
           <StatCard label="총 포카" value={stats.total} unit="종" accent={T.p} />
           <StatCard label="버전" value={stats.versionsAll.length} />
           <StatCard label="판매처" value={stats.sourcesAll.length} />
-          <StatCard label="멤버" value={stats.members.length} />
         </div>
       </Section>
       <Section title="버전별 포카 현황">

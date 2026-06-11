@@ -6,7 +6,7 @@ export function PhoneFrame({ children, bg }: { children: React.ReactNode; bg?: s
     <div className="phone-outer" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg, padding: '0' }}>
       <div
         className="phone-frame"
-        style={{ width: 375, height: 812, maxHeight: '100vh', fontFamily: T.f, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: bg || T.bg, position: 'relative', boxShadow: '0 12px 48px rgba(0,0,0,0.12)' }}
+        style={{ width: 390, height: 844, maxHeight: '100vh', fontFamily: T.f, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: bg || T.bg, position: 'relative', boxShadow: '0 12px 48px rgba(0,0,0,0.12)' }}
       >
         {children}
       </div>

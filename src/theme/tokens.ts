@@ -31,10 +31,11 @@ export const MC: Record<string, string> = {
   재현: '#F5C400',
   회승: '#FF9200',
   동성: '#F553DA',
+  유닛: '#20B2AA',
   단체: '#8050DF',
 };
 
-export const MEMBERS = ['승협', '훈', '재현', '회승', '동성', '단체'];
+export const MEMBERS = ['승협', '훈', '재현', '회승', '동성', '유닛', '단체'];
 export const DEFAULT_VERSIONS = ['Ever ver.', 'Lasting ver.'];
 export const DEFAULT_SOURCES = ['FNC STORE', '애플뮤직'];
 

@@ -29,9 +29,12 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<PhoneFrame><AlbumSelect /></PhoneFrame>} />
-        <Route path="/list" element={<MobileShell />} />
+        <Route path="/collection" element={<MobileShell />} />
+        <Route path="/album" element={<MobileShell />} />
         <Route path="/dash" element={<MobileShell />} />
         <Route path="/book" element={<MobileShell />} />
+        {/* 구버전 경로 호환 */}
+        <Route path="/list" element={<Navigate to="/album" replace />} />
 
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>

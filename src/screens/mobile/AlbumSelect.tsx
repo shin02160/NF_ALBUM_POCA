@@ -4,11 +4,13 @@ import { T, MC, MEMBERS } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Pill } from '../../components/atoms';
 import { Icon } from '../../components/icons';
+import { BottomTab } from '../../components/BottomTab';
 import { useStore } from '../../store/useStore';
 
 export function AlbumSelect() {
   const albums = useStore((s) => s.albums);
   const selectAlbum = useStore((s) => s.selectAlbum);
+  const photobook = useStore((s) => s.photobook);
   const navigate = useNavigate();
 
   return (
@@ -28,7 +30,7 @@ export function AlbumSelect() {
         {albums.map((al, i) => (
           <button
             key={al.id}
-            onClick={async () => { await selectAlbum(al.id); navigate('/list'); }}
+            onClick={async () => { await selectAlbum(al.id); navigate('/album'); }}
             style={{ background: T.s, borderRadius: 16, border: `1px solid ${i === 0 ? 'rgba(51,102,255,0.35)' : T.b}`, padding: 14, display: 'flex', gap: 14, alignItems: 'center', boxShadow: i === 0 ? '0 4px 20px rgba(51,102,255,0.10)' : '0 2px 10px rgba(0,0,0,0.04)', cursor: 'pointer', textAlign: 'left', fontFamily: T.f }}
           >
             <div style={{ width: 64, height: 64, borderRadius: 12, background: `linear-gradient(135deg, ${MC[MEMBERS[i % MEMBERS.length]]}22, ${MC[MEMBERS[(i + 1) % MEMBERS.length]] || T.p}28)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${T.b}` }}>
@@ -48,6 +50,7 @@ export function AlbumSelect() {
           </button>
         ))}
       </div>
+      <BottomTab active="album" bookCount={photobook.length} onChange={(id) => navigate(`/${id}`)} />
     </>
   );
 }

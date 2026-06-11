@@ -6,8 +6,6 @@ import { PocaCard } from '../../components/PocaCard';
 import { BottomSheet } from '../../components/BottomSheet';
 import { useStore } from '../../store/useStore';
 
-const borderDesc: Record<string, string> = { 소장: '파랑', 구해요: '빨강', '교환 가능': '노랑' };
-
 export function StatusSheet() {
   const cardId = useStore((s) => s.statusSheet.cardId);
   const card = useStore((s) => s.cards.find((c) => c.id === cardId));
@@ -47,7 +45,6 @@ export function StatusSheet() {
                 <span style={{ width: 16, height: 16, borderRadius: 5, background: sc, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{on && <Icon.check sz={11} />}</span>
                 <span style={{ fontSize: 15, fontWeight: on ? 700 : 500, color: on ? sc : T.t }}>{s}</span>
               </div>
-              <span style={{ fontSize: 11, color: T.tl }}>썸네일 테두리 {borderDesc[s]}</span>
             </button>
           );
         })}
