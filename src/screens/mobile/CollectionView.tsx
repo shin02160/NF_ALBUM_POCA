@@ -95,7 +95,7 @@ export function CollectionView() {
 
       {/* 앨범 chip 선택 */}
       <div style={{ background: T.s, borderBottom: `1px solid ${T.b}`, padding: '10px 0', flexShrink: 0, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
-        <div style={{ display: 'flex', gap: 8, padding: '0 16px', width: 'max-content' }}>
+        <div style={{ display: 'inline-flex', gap: 8, padding: '0 16px', minWidth: '100%' }}>
           {/* 전체 chip */}
           <button
             onClick={() => handleAlbumSelect(null)}

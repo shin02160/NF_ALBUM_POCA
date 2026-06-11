@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
 import { T } from './theme/tokens';
+import { PhoneFrame } from './components/PhoneFrame';
+import { AlbumSelect } from './screens/mobile/AlbumSelect';
 import { MobileShell } from './screens/mobile/MobileShell';
 import { AdminLogin } from './screens/admin/AdminLogin';
 import { AdminLayout } from './screens/admin/AdminLayout';
@@ -12,6 +14,7 @@ export default function App() {
   const loadData = useStore((s) => s.loadData);
   const hydrateAuth = useStore((s) => s.hydrateAuth);
   const loading = useStore((s) => s.loading);
+  const selectedAlbumId = useStore((s) => s.selectedAlbumId);
 
   useEffect(() => { loadData(); hydrateAuth(); }, [loadData, hydrateAuth]);
 
@@ -26,7 +29,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/collection" replace />} />
+        {/* 앨범 미선택 시 → AlbumSelect (탭바 없음), 선택 시 → collection */}
+        <Route path="/" element={selectedAlbumId ? <Navigate to="/collection" replace /> : <PhoneFrame><AlbumSelect /></PhoneFrame>} />
         <Route path="/collection" element={<MobileShell />} />
         <Route path="/album" element={<MobileShell />} />
         <Route path="/dash" element={<MobileShell />} />
@@ -40,7 +44,7 @@ export default function App() {
           <Route path="pocas" element={<AdminPocas />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/collection" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

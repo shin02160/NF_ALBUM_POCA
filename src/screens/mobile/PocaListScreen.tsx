@@ -17,20 +17,17 @@ function AlbumBanner() {
     ? `linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)), url(${album.headerImage}) center/cover`
     : ALBUM_BANNER_GRADIENT;
   return (
-    <div style={{ height: 96, position: 'relative', flexShrink: 0, overflow: 'hidden', background: bg }}>
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.15, background: 'radial-gradient(circle at 80% 20%, #fff 0%, transparent 50%)' }} />
+    <div style={{ height: 56, background: bg, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0 }}>
       <button
         onClick={() => navigate('/collection')}
-        style={{ position: 'absolute', top: 10, left: 8, width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         <Icon.back c="rgba(255,255,255,0.9)" />
       </button>
-      <div style={{ position: 'absolute', left: 16, bottom: 14, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-        <img src={LOGO} alt="" style={{ height: 26, filter: 'brightness(0) invert(1)' }} />
-        <div>
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{album.name}</p>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{[album.sub, album.year].filter(Boolean).join(' · ')}</p>
-        </div>
+      <img src={LOGO} alt="" style={{ height: 22, filter: 'brightness(0) invert(1)', flexShrink: 0 }} />
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{album.name}</p>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>{[album.sub, album.year].filter(Boolean).join(' · ')}</p>
       </div>
     </div>
   );

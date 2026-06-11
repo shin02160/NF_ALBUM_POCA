@@ -25,12 +25,10 @@ export function MobileShell() {
   const active = (VALID.includes(tab as TabId) ? tab : 'album') as TabId;
 
   useEffect(() => {
-    if (!selectedAlbumId && active !== 'collection') {
-      navigate('/collection', { replace: true });
-    }
-  }, [selectedAlbumId, active, navigate]);
+    if (!selectedAlbumId) navigate('/', { replace: true });
+  }, [selectedAlbumId, navigate]);
 
-  if (!selectedAlbumId && active !== 'collection') return null;
+  if (!selectedAlbumId) return null;
 
   const isListTab = active === 'album' || active === 'collection';
 
