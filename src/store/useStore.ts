@@ -6,6 +6,7 @@ import {
   isSupabaseConfigured, fetchAlbums, fetchCards,
   signInAdmin, signOutAdmin, hasAdminSession,
   upsertAlbumDb, deleteAlbumDb, upsertCardDb, deleteCardDb, reorderCardsDb,
+  fetchUserData, upsertUserData,
 } from '../lib/supabase';
 
 // ── LocalStorage helpers (PRD 3-3) ─────────────────────────────────────
@@ -95,7 +96,18 @@ interface State {
   reorderCards: (albumId: string, orderedIds: string[]) => void;
 }
 
-export const useStore = create<State>((set, get) => ({
+export const useStore = create<State>((set, get) => {
+  // DB 저장 디바운서: 마지막 변경 후 800ms에 한 번 upsert
+  let dbTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleSyncToDb() {
+    if (dbTimer) clearTimeout(dbTimer);
+    dbTimer = setTimeout(() => {
+      const { statusMap, photobook } = get();
+      upsertUserData(statusMap, photobook).catch(console.warn);
+    }, 800);
+  }
+
+  return {
   albums: [],
   cards: [],
   loading: true,
@@ -112,17 +124,29 @@ export const useStore = create<State>((set, get) => ({
 
   async loadData() {
     set({ loading: true });
+    const savedAlbumId = loadAlbumId();
+
+    // 기본값: localStorage
     let statusMap = loadStatus();
     if (Object.keys(statusMap).length === 0 && !localStorage.getItem(LS_STATUS)) {
       statusMap = { ...DEMO_STATUS };
       saveStatus(statusMap);
     }
-    const photobook = loadPhotobook();
-    const savedAlbumId = loadAlbumId();
+    let photobook = loadPhotobook();
 
     if (isSupabaseConfigured) {
       try {
-        const albums = await fetchAlbums();
+        const [albums, dbUserData] = await Promise.all([fetchAlbums(), fetchUserData()]);
+
+        if (dbUserData) {
+          // 관리자 로그인 상태 → DB 우선
+          statusMap = dbUserData.statusMap;
+          photobook = dbUserData.photobook;
+          saveStatus(statusMap);
+          savePhotobook(photobook);
+        }
+        // 비로그인 → 위에서 초기화된 localStorage 값 사용
+
         const selectedAlbumId = albums.some((a) => a.id === savedAlbumId && a.isVisible !== false) ? savedAlbumId : null;
         set({ albums, cards: [], statusMap, photobook, selectedAlbumId, loading: false });
         return;
@@ -130,17 +154,11 @@ export const useStore = create<State>((set, get) => ({
         console.warn('Supabase fetch 실패 → 샘플 데이터 폴백', e);
       }
     }
+
+    // 샘플 데이터 폴백
     const albums = SAMPLE_ALBUMS;
     const selectedAlbumId = albums.some((a) => a.id === savedAlbumId && a.isVisible !== false) ? savedAlbumId : null;
-    set({
-      albums,
-      cards: SAMPLE_CARDS,
-      statusMap,
-      photobook,
-      selectedAlbumId,
-      loading: false,
-      usingSupabase: false,
-    });
+    set({ albums, cards: SAMPLE_CARDS, statusMap, photobook, selectedAlbumId, loading: false, usingSupabase: false });
   },
 
   async ensureCards(albumId) {
@@ -181,15 +199,17 @@ export const useStore = create<State>((set, get) => ({
   openFilterModal: (tab = 0) => set({ filterModal: { open: true, tab } }),
   closeFilterModal: () => set((s) => ({ filterModal: { ...s.filterModal, open: false } })),
 
-  setStatus: (cardId, status) =>
+  setStatus: (cardId, status) => {
     set((s) => {
       const statusMap = { ...s.statusMap, [cardId]: status };
       if (status === null) delete statusMap[cardId];
       saveStatus(statusMap);
       return { statusMap };
-    }),
+    });
+    scheduleSyncToDb();
+  },
 
-  toggleStatus: (cardId, status) =>
+  toggleStatus: (cardId, status) => {
     set((s) => {
       const current = s.statusMap[cardId] ?? null;
       const next = current === status ? null : status;
@@ -198,24 +218,31 @@ export const useStore = create<State>((set, get) => ({
       else statusMap[cardId] = next;
       saveStatus(statusMap);
       return { statusMap };
-    }),
+    });
+    scheduleSyncToDb();
+  },
 
-  addToPhotobook: (cardId) =>
+  addToPhotobook: (cardId) => {
     set((s) => {
       if (s.photobook.includes(cardId)) return {};
       const photobook = [...s.photobook, cardId];
       savePhotobook(photobook);
       return { photobook };
-    }),
-  removeFromPhotobook: (cardId) =>
+    });
+    scheduleSyncToDb();
+  },
+  removeFromPhotobook: (cardId) => {
     set((s) => {
       const photobook = s.photobook.filter((id) => id !== cardId);
       savePhotobook(photobook);
       return { photobook };
-    }),
+    });
+    scheduleSyncToDb();
+  },
   reorderPhotobook: (ids) => {
     savePhotobook(ids);
     set({ photobook: ids });
+    scheduleSyncToDb();
   },
 
   // ── 관리자 (Supabase Auth) ── 세션 JWT로 쓰기 → RLS is_admin() 허용
@@ -291,4 +318,5 @@ export const useStore = create<State>((set, get) => ({
     });
     if (get().usingSupabase) reorderCardsDb(orderedIds).catch((e) => console.error('정렬 저장 실패', e));
   },
-}));
+  };
+});

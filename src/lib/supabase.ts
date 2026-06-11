@@ -1,7 +1,7 @@
 // ── Supabase 데이터 레이어 (PRD 3-2, 3-4, 6, 7) ─────────────────────────
 // env 미설정 시 null → store가 샘플 데이터로 폴백한다.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Album, PocaCard } from '../types';
+import type { Album, PocaCard, PocaStatusMap } from '../types';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_KEY as string | undefined;
@@ -109,6 +109,37 @@ export async function reorderCardsDb(orderedIds: string[]): Promise<void> {
   );
   const err = results.find((r) => r.error)?.error;
   if (err) throw err;
+}
+
+// ── 소장 정보 (user_data 테이블) ─────────────────────────────────────────
+export async function fetchUserData(): Promise<{ statusMap: PocaStatusMap; photobook: string[] } | null> {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.email) return null;
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('status_map, photobook')
+    .eq('user_email', session.user.email)
+    .maybeSingle();
+  if (error) { console.warn('user_data 로드 실패', error); return null; }
+  if (!data) return { statusMap: {}, photobook: [] };
+  return {
+    statusMap: (data.status_map as PocaStatusMap) ?? {},
+    photobook: (data.photobook as string[]) ?? [],
+  };
+}
+
+export async function upsertUserData(statusMap: PocaStatusMap, photobook: string[]): Promise<void> {
+  if (!supabase) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.email) return;
+  const { error } = await supabase.from('user_data').upsert({
+    user_email: session.user.email,
+    status_map: statusMap,
+    photobook,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_email' });
+  if (error) console.warn('user_data 저장 실패', error);
 }
 
 // 이미지 업로드: 인증 관리자 → Storage 직접 업로드. 미설정 시 dataURL 폴백.
