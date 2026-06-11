@@ -17,7 +17,7 @@ type AlbumGroup = {
 };
 
 export function CollectionView() {
-  const albums = useStore((s) => s.albums);
+  const albums = useStore((s) => s.albums.filter((a) => a.isVisible !== false));
   const cards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
   const filters = useStore((s) => s.filters);

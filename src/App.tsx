@@ -30,7 +30,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* 앨범 미선택 시 → AlbumSelect (탭바 없음), 선택 시 → collection */}
-        <Route path="/" element={selectedAlbumId ? <Navigate to="/collection" replace /> : <PhoneFrame><AlbumSelect /></PhoneFrame>} />
+        <Route path="/" element={selectedAlbumId ? <Navigate to="/album" replace /> : <PhoneFrame><AlbumSelect /></PhoneFrame>} />
         <Route path="/collection" element={<MobileShell />} />
         <Route path="/album" element={<MobileShell />} />
         <Route path="/dash" element={<MobileShell />} />

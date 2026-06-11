@@ -121,7 +121,7 @@ export const useStore = create<State>((set, get) => ({
     if (isSupabaseConfigured) {
       try {
         const albums = await fetchAlbums();
-        const selectedAlbumId = albums.some((a) => a.id === savedAlbumId) ? savedAlbumId : null;
+        const selectedAlbumId = albums.some((a) => a.id === savedAlbumId && a.isVisible !== false) ? savedAlbumId : null;
         set({ albums, cards: [], statusMap, photobook, selectedAlbumId, loading: false });
         return;
       } catch (e) {
@@ -129,7 +129,7 @@ export const useStore = create<State>((set, get) => ({
       }
     }
     const albums = SAMPLE_ALBUMS;
-    const selectedAlbumId = albums.some((a) => a.id === savedAlbumId) ? savedAlbumId : null;
+    const selectedAlbumId = albums.some((a) => a.id === savedAlbumId && a.isVisible !== false) ? savedAlbumId : null;
     set({
       albums,
       cards: SAMPLE_CARDS,

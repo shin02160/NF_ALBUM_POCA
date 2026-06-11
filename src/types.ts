@@ -12,6 +12,7 @@ export interface Album {
   headerImage?: string | null;
   bgImage?: string | null;
   sortOrder: number;
+  isVisible?: boolean;
 }
 
 // PRD 3-2 album_poca_cards + handoff PocaCard 모델

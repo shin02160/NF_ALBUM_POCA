@@ -5,8 +5,8 @@ import { Icon } from './icons';
 export type TabId = 'collection' | 'album' | 'dash' | 'book';
 
 const tabs: { id: TabId; label: string; Ico: (p: { c?: string; sz?: number }) => React.ReactElement }[] = [
+  { id: 'album',      label: '앨범',     Ico: Icon.list },
   { id: 'collection', label: '모아보기', Ico: Icon.grid },
-  { id: 'album',      label: '앨범별',   Ico: Icon.list },
   { id: 'dash',       label: '대시보드', Ico: Icon.chart },
   { id: 'book',       label: '포토북',   Ico: Icon.book },
 ];

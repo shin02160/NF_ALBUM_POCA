@@ -7,7 +7,7 @@ import { Icon } from '../../components/icons';
 import { useStore } from '../../store/useStore';
 
 export function AlbumSelect() {
-  const albums = useStore((s) => s.albums);
+  const albums = useStore((s) => s.albums.filter((a) => a.isVisible !== false));
   const selectAlbum = useStore((s) => s.selectAlbum);
   const navigate = useNavigate();
 

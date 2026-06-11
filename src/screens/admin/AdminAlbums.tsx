@@ -11,7 +11,7 @@ const fieldStyle: React.CSSProperties = { height: 42, borderRadius: 10, border: 
 const Label = ({ children }: { children: React.ReactNode }) => <p style={{ fontSize: 12, fontWeight: 600, color: T.tm, marginBottom: 7 }}>{children}</p>;
 
 function emptyAlbum(order: number): Album {
-  return { id: '', name: '', sub: '', year: '', versions: [], sources: [], count: 0, headerImage: null, bgImage: null, sortOrder: order };
+  return { id: '', name: '', sub: '', year: '', versions: [], sources: [], count: 0, headerImage: null, bgImage: null, sortOrder: order, isVisible: true };
 }
 
 export function AdminAlbums() {
@@ -67,7 +67,10 @@ export function AdminAlbums() {
               <button key={al.id} onClick={() => { setIsNew(false); setSelectedId(al.id); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, background: on ? T.pb : 'transparent', marginBottom: 4, border: on ? `1px solid rgba(51,102,255,0.3)` : '1px solid transparent', cursor: 'pointer', textAlign: 'left', fontFamily: T.f }}>
                 <div style={{ width: 44, height: 44, borderRadius: 9, background: al.headerImage ? `url(${al.headerImage}) center/cover` : `linear-gradient(135deg, ${MC[MEMBERS[i % MEMBERS.length]]}22, ${T.p}22)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{!al.headerImage && <img src={LOGO} style={{ width: '60%', opacity: 0.5 }} />}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: on ? T.p : T.t, marginBottom: 2 }}>{al.name}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: on ? T.p : T.t }}>{al.name}</p>
+                    {al.isVisible === false && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: T.tm, borderRadius: 4, padding: '1px 5px' }}>OFF</span>}
+                  </div>
                   <p style={{ fontSize: 11, color: T.tm }}>{al.count}종 · {al.versions.length}버전</p>
                 </div>
               </button>
@@ -87,7 +90,15 @@ export function AdminAlbums() {
                 <p style={{ fontSize: 12, color: T.tl, fontWeight: 600, marginBottom: 3 }}>{isNew ? '새 앨범' : '앨범 편집'}</p>
                 <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>{draft.name || '(이름 없음)'}</p>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {/* On/Off 토글 */}
+                <button
+                  onClick={() => setDraft({ ...draft, isVisible: draft.isVisible === false ? true : false })}
+                  style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${draft.isVisible === false ? T.b : T.p}`, background: draft.isVisible === false ? T.bl : T.pb, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: draft.isVisible === false ? T.tm : T.p, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: draft.isVisible === false ? T.tm : T.p, fontWeight: 600 }}>{draft.isVisible === false ? 'OFF' : 'ON'}</span>
+                </button>
                 {!isNew && <button onClick={onDelete} style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${T.b}`, background: T.s, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><Icon.trash c={T.tm} sz={15} /><span style={{ fontSize: 13, color: T.tm, fontWeight: 600 }}>삭제</span></button>}
                 <button onClick={onSave} style={{ height: 38, padding: '0 18px', borderRadius: 10, background: T.p, display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(51,102,255,0.25)', border: 'none', cursor: 'pointer' }}><span style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>저장</span></button>
               </div>

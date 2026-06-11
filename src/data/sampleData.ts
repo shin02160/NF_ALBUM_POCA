@@ -10,17 +10,17 @@ export const SAMPLE_ALBUMS: Album[] = [
   {
     id: 'everlasting', name: 'Everlasting', sub: '정규 2집', year: '2025',
     versions: VERSIONS, sources: ['FNC STORE', '애플뮤직'], count: 12,
-    headerImage: null, bgImage: null, sortOrder: 1,
+    headerImage: null, bgImage: null, sortOrder: 1, isVisible: true,
   },
   {
     id: 'woosahap', name: '우사합', sub: '스페셜', year: '2026',
     versions: ['통합 ver.'], sources: ['FNC STORE'], count: 6,
-    headerImage: null, bgImage: null, sortOrder: 2,
+    headerImage: null, bgImage: null, sortOrder: 2, isVisible: true,
   },
   {
     id: 'motm', name: 'Man on the Moon', sub: '미니 3집', year: '2021',
     versions: ['A ver.', 'B ver.'], sources: ['FNC STORE', '기타'], count: 9,
-    headerImage: null, bgImage: null, sortOrder: 3,
+    headerImage: null, bgImage: null, sortOrder: 3, isVisible: true,
   },
 ];
 
