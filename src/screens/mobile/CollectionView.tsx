@@ -1,5 +1,5 @@
 // ── 모아보기: 전체 / 앨범별 필터 ─────────────────────────────────────────
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { T, MC, MEMBERS } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
@@ -26,6 +26,12 @@ export function CollectionView() {
   const openFilterModal = useStore((s) => s.openFilterModal);
   const selectAlbum = useStore((s) => s.selectAlbum);
   const resetFilters = useStore((s) => s.resetFilters);
+  const ensureCards = useStore((s) => s.ensureCards);
+  const albumIds = useStore(useShallow((s) => s.albums.map((a) => a.id)));
+
+  useEffect(() => {
+    albumIds.forEach((id) => ensureCards(id));
+  }, [albumIds, ensureCards]);
 
   const [albumFilter, setAlbumFilter] = useState<string | null>(null);
 
@@ -120,10 +126,10 @@ export function CollectionView() {
                 key={album.id}
                 onClick={() => handleAlbumSelect(album.id)}
                 style={{
-                  minWidth: 108, padding: '7px 13px', borderRadius: 10,
+                  minWidth: 108, height: 52, padding: '0 13px', borderRadius: 10,
                   border: `${on ? 1.5 : 1}px solid ${on ? T.p : T.b}`,
                   background: on ? T.pb : T.s,
-                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3,
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 3,
                   cursor: 'pointer', fontFamily: T.f, flexShrink: 0, textAlign: 'left',
                   boxShadow: on ? '0 2px 8px rgba(51,102,255,0.12)' : 'none',
                 }}

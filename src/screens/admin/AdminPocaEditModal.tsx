@@ -15,8 +15,8 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
 
   const [name, setName] = useState(card?.name ?? '');
   const [member, setMember] = useState(card?.member ?? MEMBERS[0]);
-  const [version, setVersion] = useState(card?.version ?? album.versions[0] ?? '');
-  const [source, setSource] = useState(card?.source ?? album.sources[0] ?? '');
+  const [version, setVersion] = useState(card?.version ?? '-');
+  const [source, setSource] = useState(card?.source ?? '-');
   const [imageUrl, setImageUrl] = useState<string | null>(card?.imageUrl ?? null);
   const [uploading, setUploading] = useState(false);
 
@@ -82,12 +82,14 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
               <div style={{ flex: 1 }}>
                 <Label>버전</Label>
                 <select style={{ ...fieldStyle, cursor: 'pointer' }} value={version} onChange={(e) => setVersion(e.target.value)}>
+                  <option value="-">-</option>
                   {album.versions.map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div style={{ flex: 1 }}>
                 <Label>구매처</Label>
                 <select style={{ ...fieldStyle, cursor: 'pointer' }} value={source} onChange={(e) => setSource(e.target.value)}>
+                  <option value="-">-</option>
                   {album.sources.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>

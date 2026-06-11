@@ -1,5 +1,6 @@
 // ── 포카 관리 (테이블 CRUD + 드래그 정렬) — PRD 4-6, handoff 2-3/2-4 ────
 import { useEffect, useMemo, useState } from 'react';
+import type { Album } from '../../types';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core';
@@ -46,11 +47,17 @@ export function AdminPocas() {
   const reorderCards = useStore((s) => s.reorderCards);
   const ensureCards = useStore((s) => s.ensureCards);
 
-  const [albumId, setAlbumId] = useState(albums[0]?.id ?? '');
+  const [albumId, setAlbumId] = useState('');
 
-  useEffect(() => { if (albumId) ensureCards(albumId); }, [albumId, ensureCards]);
+  useEffect(() => {
+    if (albumId) {
+      ensureCards(albumId);
+    } else {
+      albums.forEach((a) => ensureCards(a.id));
+    }
+  }, [albumId, albums, ensureCards]);
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState<{ card: Card | null } | null>(null);
+  const [editing, setEditing] = useState<{ card: Card | null; album: Album } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const album = albums.find((a) => a.id === albumId);
@@ -58,7 +65,7 @@ export function AdminPocas() {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allCards
-      .filter((c) => c.albumId === albumId)
+      .filter((c) => !albumId || c.albumId === albumId)
       .filter((c) => !q || c.name.toLowerCase().includes(q) || c.member.toLowerCase().includes(q))
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [allCards, albumId, search]);
@@ -79,6 +86,7 @@ export function AdminPocas() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>포카 관리</p>
           <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} style={{ height: 30, padding: '0 12px', borderRadius: 100, background: T.bl, border: 'none', fontSize: 12, color: T.tm, fontWeight: 600, cursor: 'pointer', fontFamily: T.f }}>
+            <option value="">전체</option>
             {albums.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
           <span style={{ fontSize: 13, color: T.tm }}>총 {rows.length}종</span>
@@ -88,7 +96,7 @@ export function AdminPocas() {
             <Icon.search c={T.tl} />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="포카 검색" style={{ flex: 1, border: 'none', outline: 'none', background: 'none', fontSize: 13, color: T.t, fontFamily: T.f }} />
           </div>
-          <button onClick={() => album && setEditing({ card: null })} style={{ height: 40, padding: '0 16px', borderRadius: 10, background: T.p, display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 10px rgba(51,102,255,0.25)', border: 'none', cursor: 'pointer' }}><Icon.plus c="#fff" sz={13} /><span style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>포카 추가</span></button>
+          <button onClick={() => album && setEditing({ card: null, album })} disabled={!album} style={{ height: 40, padding: '0 16px', borderRadius: 10, background: album ? T.p : T.bl, display: 'flex', alignItems: 'center', gap: 6, boxShadow: album ? '0 2px 10px rgba(51,102,255,0.25)' : 'none', border: 'none', cursor: album ? 'pointer' : 'default', opacity: album ? 1 : 0.5 }}><Icon.plus c={album ? '#fff' : T.tm} sz={13} /><span style={{ fontSize: 13, color: album ? '#fff' : T.tm, fontWeight: 700 }}>포카 추가</span></button>
         </div>
       </div>
       {/* Table */}
@@ -103,7 +111,10 @@ export function AdminPocas() {
             <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
               {rows.map((card) => (
                 <Row key={card.id} card={card}
-                  onEdit={() => setEditing({ card })}
+                  onEdit={() => {
+                    const targetAlbum = album ?? albums.find((a) => a.id === card.albumId);
+                    if (targetAlbum) setEditing({ card, album: targetAlbum });
+                  }}
                   onDelete={() => { if (confirm(`'${card.name}' 삭제할까요?`)) deleteCard(card.id); }} />
               ))}
             </SortableContext>
@@ -111,8 +122,8 @@ export function AdminPocas() {
         )}
       </div>
 
-      {editing && album && (
-        <AdminPocaEditModal album={album} card={editing.card} nextOrder={rows.length} onClose={() => setEditing(null)} />
+      {editing && (
+        <AdminPocaEditModal album={editing.album} card={editing.card} nextOrder={rows.length} onClose={() => setEditing(null)} />
       )}
     </div>
   );
