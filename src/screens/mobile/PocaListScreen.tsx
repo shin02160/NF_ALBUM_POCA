@@ -64,8 +64,11 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
       const sources = [...new Set(albumCards.filter((c) => c.version === ver).map((c) => c.source))];
       const membersToShow = filters.member.length > 0 ? MEMBERS.filter((m) => filters.member.includes(m)) : MEMBERS;
 
-      // 개별 멤버행: 단일 멤버 포카만 (정확히 일치)
-      const individualRows = membersToShow
+      const soloMembers = ['승협', '훈', '재현', '회승', '동성'];
+
+      // 1. 개별 멤버행 (승협~동성, 정확히 일치)
+      const individualRows = soloMembers
+        .filter((m) => membersToShow.includes(m))
         .map((m) => ({
           member: m,
           displayName: m,
@@ -76,9 +79,9 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
           return !search || r.member.includes(search) || r.cards.some((c) => c.name.includes(search));
         });
 
-      // 유닛행: 다중 멤버 포카 (member 문자열 기준 그룹)
+      // 2. 동적 유닛행 (다중 멤버 조합)
       const unitStrings = [...new Set(vCards.filter((c) => c.member.includes(',')).map((c) => c.member))];
-      const unitRows = unitStrings
+      const dynamicUnitRows = unitStrings
         .map((unit) => ({
           member: unit,
           displayName: unit.split(',').map((s) => s.trim()).join(' · '),
@@ -89,7 +92,19 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
           return !search || r.cards.some((c) => c.name.includes(search));
         });
 
-      const memberRows = [...individualRows, ...unitRows];
+      // 3. 단체 고정행 (맨 아래)
+      const groupRows = membersToShow.includes('단체')
+        ? [{
+            member: '단체',
+            displayName: '단체',
+            cards: vCards.filter((c) => !c.member.includes(',') && c.member.trim() === '단체'),
+          }].filter((r) => {
+            if (filters.source.length > 0 && r.cards.length === 0) return false;
+            return !search || r.member.includes(search) || r.cards.some((c) => c.name.includes(search));
+          })
+        : [];
+
+      const memberRows = [...individualRows, ...dynamicUnitRows, ...groupRows];
 
       return { version: ver, sourceLabel: sources.join(' · '), memberRows };
     }).filter((g) => g.memberRows.length > 0);

@@ -22,10 +22,14 @@ function memberDotColor(member: string): string {
   return MC[member.split(',')[0].trim()] || T.tm;
 }
 
-// 멤버행 빌더: 개별 멤버(단일) + 유닛(다중) 분리
+// 고정 멤버 순서 상수
+const SOLO_MEMBERS = ['승협', '훈', '재현', '회승', '동성'];
+
+// 멤버행 빌더: 개별(승협~동성) → 동적 유닛 → 단체 순 고정
 function buildMemberRows(sCards: Card[], membersToShow: string[], showEmpty: boolean): MemberRow[] {
-  // 개별 멤버행: 단일 멤버 포카만 (정확히 일치)
-  const individualRows: MemberRow[] = membersToShow
+  // 1. 개별 멤버행 (승협~동성)
+  const individualRows: MemberRow[] = SOLO_MEMBERS
+    .filter((m) => membersToShow.includes(m))
     .map((m) => ({
       member: m,
       displayName: m,
@@ -33,9 +37,9 @@ function buildMemberRows(sCards: Card[], membersToShow: string[], showEmpty: boo
     }))
     .filter((r) => r.cards.length > 0 || showEmpty);
 
-  // 유닛행: 다중 멤버 포카 (member 문자열 기준 그룹)
+  // 2. 동적 유닛행 (다중 멤버 조합, 쉼표 구분)
   const unitStrings = [...new Set(sCards.filter((c) => c.member.includes(',')).map((c) => c.member))];
-  const unitRows: MemberRow[] = unitStrings
+  const dynamicUnitRows: MemberRow[] = unitStrings
     .map((unit) => ({
       member: unit,
       displayName: unit.split(',').map((s) => s.trim()).join(' · '),
@@ -43,7 +47,16 @@ function buildMemberRows(sCards: Card[], membersToShow: string[], showEmpty: boo
     }))
     .filter((r) => r.cards.length > 0);
 
-  return [...individualRows, ...unitRows];
+  // 3. 단체 고정행 (맨 아래 고정)
+  const groupRows: MemberRow[] = membersToShow.includes('단체')
+    ? [{
+        member: '단체',
+        displayName: '단체',
+        cards: sCards.filter((c) => !c.member.includes(',') && c.member.trim() === '단체'),
+      }].filter((r) => r.cards.length > 0 || showEmpty)
+    : [];
+
+  return [...individualRows, ...dynamicUnitRows, ...groupRows];
 }
 
 export function CollectionView() {
@@ -125,8 +138,7 @@ export function CollectionView() {
 
       for (const src of sources) {
         const sCards = allVerCards.filter((c) => c.source === src);
-        // 소스 필터 활성 시 빈 행 표시 (어떤 멤버가 없는지 확인 가능)
-        const memberRows = buildMemberRows(sCards, membersToShow, filters.source.length > 0);
+        const memberRows = buildMemberRows(sCards, membersToShow, true);
         if (memberRows.length > 0) {
           versionGroups.push({ version: ver, source: src, memberRows });
         }
