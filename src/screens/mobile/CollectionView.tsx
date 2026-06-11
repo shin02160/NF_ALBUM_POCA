@@ -5,6 +5,7 @@ import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
 import { PocaCard } from '../../components/PocaCard';
 import { useStore } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { filterLabel } from '../../lib/selectors';
 import type { PocaCard as Card } from '../../types';
 
@@ -17,7 +18,7 @@ type AlbumGroup = {
 };
 
 export function CollectionView() {
-  const albums = useStore((s) => s.albums.filter((a) => a.isVisible !== false));
+  const albums = useStore(useShallow((s) => s.albums.filter((a) => a.isVisible !== false)));
   const cards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
   const filters = useStore((s) => s.filters);

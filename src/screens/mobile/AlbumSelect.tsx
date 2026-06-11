@@ -5,9 +5,10 @@ import { LOGO } from '../../assets';
 import { Pill } from '../../components/atoms';
 import { Icon } from '../../components/icons';
 import { useStore } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export function AlbumSelect() {
-  const albums = useStore((s) => s.albums.filter((a) => a.isVisible !== false));
+  const albums = useStore(useShallow((s) => s.albums.filter((a) => a.isVisible !== false)));
   const selectAlbum = useStore((s) => s.selectAlbum);
   const navigate = useNavigate();
 
