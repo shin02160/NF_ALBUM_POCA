@@ -1,7 +1,8 @@
 // ── 대시보드 (PRD 4-4, handoff 1-8) ─────────────────────────────────────
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { T, MC } from '../../theme/tokens';
 import { useStore } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { PocaCard } from '../../types';
 
 const StatCard = ({ label, value, unit, accent }: { label: string; value: number | string; unit?: string; accent?: string }) => (
@@ -51,12 +52,31 @@ function countBy<T extends string>(items: PocaCard[], key: (c: PocaCard) => T): 
   return m;
 }
 
+function countMembers(items: PocaCard[]): Map<string, number> {
+  const m = new Map<string, number>();
+  items.forEach((c) => {
+    c.member.split(',').map((s) => s.trim()).filter(Boolean).forEach((mbr) => {
+      m.set(mbr, (m.get(mbr) ?? 0) + 1);
+    });
+  });
+  return m;
+}
+
 export function Dashboard() {
   const albumId = useStore((s) => s.selectedAlbumId);
   const allCards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
+  const ensureCards = useStore((s) => s.ensureCards);
+  const albumIds = useStore(useShallow((s) => s.albums.map((a) => a.id)));
 
-  const cards = useMemo(() => allCards.filter((c) => c.albumId === albumId), [allCards, albumId]);
+  useEffect(() => {
+    albumIds.forEach((id) => ensureCards(id));
+  }, [albumIds, ensureCards]);
+
+  const cards = useMemo(
+    () => albumId ? allCards.filter((c) => c.albumId === albumId) : allCards,
+    [allCards, albumId],
+  );
 
   const stats = useMemo(() => {
     const total = cards.length;
@@ -68,8 +88,8 @@ export function Dashboard() {
     const sourcesAll = [...countBy(cards, (c) => c.source)].map(([name, n]) => ({ name, n }));
     const versionsOwned = countBy(owned, (c) => c.version);
     const sourcesOwned = countBy(owned, (c) => c.source);
-    const ownedByMember = countBy(owned, (c) => c.member);
-    const totalByMember = countBy(cards, (c) => c.member);
+    const ownedByMember = countMembers(owned);
+    const totalByMember = countMembers(cards);
 
     return {
       total, ownedTotal: owned.length, wanted, tradable,
@@ -93,7 +113,7 @@ export function Dashboard() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', gap: 13 }}>
       <div>
-        <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>컬렉션 대시보드</p>
+        <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>{albumId ? '컬렉션 대시보드' : '전체 현황'}</p>
       </div>
 
       {/* [일반] */}

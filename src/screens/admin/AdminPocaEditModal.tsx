@@ -14,7 +14,13 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
   const ref = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(card?.name ?? '');
-  const [member, setMember] = useState(card?.member ?? MEMBERS[0]);
+  const [members, setMembers] = useState<string[]>(() =>
+    card?.member ? card.member.split(',').map((s) => s.trim()).filter(Boolean) : [MEMBERS[0]],
+  );
+  const toggleMember = (m: string) =>
+    setMembers((prev) =>
+      prev.includes(m) ? (prev.length > 1 ? prev.filter((x) => x !== m) : prev) : [...prev, m],
+    );
   const [version, setVersion] = useState(card?.version ?? '-');
   const [source, setSource] = useState(card?.source ?? '-');
   const [imageUrl, setImageUrl] = useState<string | null>(card?.imageUrl ?? null);
@@ -34,11 +40,11 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
   };
 
   const onSave = () => {
-    const finalName = name.trim() || `${member} 포토카드`;
+    const finalName = name.trim() || `${members.join('·')} 포토카드`;
     saveCard({
       id: card?.id ?? `${album.id}-${Date.now()}`,
       albumId: album.id,
-      name: finalName, member, version, source, imageUrl,
+      name: finalName, member: members.join(','), version, source, imageUrl,
       sortOrder: card?.sortOrder ?? nextOrder,
     });
     onClose();
@@ -68,9 +74,9 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
               <Label>멤버</Label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {MEMBERS.map((m) => {
-                  const on = m === member;
+                  const on = members.includes(m);
                   return (
-                    <button key={m} onClick={() => setMember(m)} style={{ height: 34, padding: '0 12px', borderRadius: 100, background: on ? MC[m] : T.bl, border: `1.5px solid ${on ? MC[m] : T.b}`, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontFamily: T.f }}>
+                    <button key={m} onClick={() => toggleMember(m)} style={{ height: 34, padding: '0 12px', borderRadius: 100, background: on ? MC[m] : T.bl, border: `1.5px solid ${on ? MC[m] : T.b}`, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontFamily: T.f }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: on ? '#fff' : MC[m] }} />
                       <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? '#fff' : T.t }}>{m}</span>
                     </button>

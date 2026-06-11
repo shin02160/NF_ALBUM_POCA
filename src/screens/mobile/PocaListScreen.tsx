@@ -65,10 +65,10 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
       const membersToShow = filters.member.length > 0 ? MEMBERS.filter((m) => filters.member.includes(m)) : MEMBERS;
 
       const memberRows = membersToShow
-        .map((m) => ({ member: m, card: vCards.find((c) => c.member === m) ?? null }))
+        .map((m) => ({ member: m, cards: vCards.filter((c) => c.member.split(',').map((s) => s.trim()).includes(m)) }))
         .filter((r) => {
-          if (filters.source.length > 0 && !r.card) return false;
-          return !search || r.member.includes(search) || (r.card?.name ?? '').includes(search);
+          if (filters.source.length > 0 && r.cards.length === 0) return false;
+          return !search || r.member.includes(search) || r.cards.some((c) => c.name.includes(search));
         });
 
       return { version: ver, sourceLabel: sources.join(' · '), memberRows };
@@ -136,20 +136,25 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
                     </>
                   )}
                 </div>
-                {memberRows.map(({ member, card }) => (
-                  <button
+                {memberRows.map(({ member, cards: rowCards }) => (
+                  <div
                     key={member}
-                    onClick={() => card && openStatusSheet(card.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${T.bl}`, cursor: card ? 'pointer' : 'default', textAlign: 'left', fontFamily: T.f }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}`, fontFamily: T.f }}
                   >
                     <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
                       <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{member}</span>
                     </div>
-                    {card
-                      ? <div style={{ width: 52 }}><PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={52} radius={6} /></div>
-                      : <div style={{ width: 52, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
-                  </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {rowCards.length > 0
+                        ? rowCards.map((card) => (
+                            <button key={card.id} onClick={() => openStatusSheet(card.id)} style={{ width: 52, flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                              <PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={52} radius={6} />
+                            </button>
+                          ))
+                        : <div style={{ width: 52, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
+                    </div>
+                  </div>
                 ))}
               </div>
             ))}
