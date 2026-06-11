@@ -69,7 +69,7 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
           </div>
           {/* Fields */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div><Label>포카명</Label><input style={fieldStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder={`${member} 포토카드`} /></div>
+            <div><Label>포카명</Label><input style={fieldStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder={`${members.join('·')} 포토카드`} /></div>
             <div>
               <Label>멤버</Label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
