@@ -13,7 +13,8 @@ create table if not exists album_meta (
   header_image text,
   bg_image     text,
   sources      text[] not null default array['FNC STORE','애플뮤직'],
-  sort_order   int not null default 0
+  sort_order   int not null default 0,
+  is_visible   boolean not null default true
 );
 
 -- 포카 카드
