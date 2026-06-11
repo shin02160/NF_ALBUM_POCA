@@ -13,7 +13,7 @@ create table if not exists public.admin_users (
 alter table public.admin_users enable row level security;
 
 -- 관리자 이메일 등록 (본인 Auth 계정 이메일로 변경)
-insert into public.admin_users(email) values ('won_j_02160@aol.com')
+insert into public.admin_users(email) values ('youngshin02160@aol.com')
 on conflict (email) do nothing;
 
 -- 현재 로그인 사용자가 관리자인지 (JWT email 기준)
