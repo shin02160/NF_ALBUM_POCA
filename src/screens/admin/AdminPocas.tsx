@@ -1,5 +1,5 @@
 // ── 포카 관리 (테이블 CRUD + 드래그 정렬) — PRD 4-6, handoff 2-3/2-4 ────
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core';
@@ -44,8 +44,11 @@ export function AdminPocas() {
   const allCards = useStore((s) => s.cards);
   const deleteCard = useStore((s) => s.deleteCard);
   const reorderCards = useStore((s) => s.reorderCards);
+  const ensureCards = useStore((s) => s.ensureCards);
 
   const [albumId, setAlbumId] = useState(albums[0]?.id ?? '');
+
+  useEffect(() => { if (albumId) ensureCards(albumId); }, [albumId, ensureCards]);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<{ card: Card | null } | null>(null);
 

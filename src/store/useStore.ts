@@ -82,6 +82,8 @@ interface State {
   removeFromPhotobook: (cardId: string) => void;
   reorderPhotobook: (ids: string[]) => void;
 
+  ensureCards: (albumId: string) => Promise<void>;
+
   // 관리자 (Supabase Auth)
   authenticate: (email: string, password: string) => Promise<boolean>;
   hydrateAuth: () => Promise<void>;
@@ -139,6 +141,18 @@ export const useStore = create<State>((set, get) => ({
       loading: false,
       usingSupabase: false,
     });
+  },
+
+  async ensureCards(albumId) {
+    const existing = get().cards.some((c) => c.albumId === albumId);
+    if (!existing && get().usingSupabase) {
+      try {
+        const cards = await fetchCards(albumId);
+        set((s) => ({ cards: [...s.cards, ...cards] }));
+      } catch (e) {
+        console.warn('카드 로드 실패', e);
+      }
+    }
   },
 
   async selectAlbum(id) {

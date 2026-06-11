@@ -19,7 +19,7 @@ export function AdminLayout() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: T.f, display: 'flex', flexDirection: 'column', background: T.bg }}>
+    <div style={{ height: '100vh', overflow: 'hidden', fontFamily: T.f, display: 'flex', flexDirection: 'column', background: T.bg }}>
       <div style={{ height: 60, background: T.s, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', padding: '0 28px', gap: 28, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src={LOGO} alt="" style={{ height: 34 }} />

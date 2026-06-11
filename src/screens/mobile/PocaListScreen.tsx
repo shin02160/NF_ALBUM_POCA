@@ -9,7 +9,7 @@ import { useStore } from '../../store/useStore';
 import { filterCards, filterLabel } from '../../lib/selectors';
 
 // ── 앨범 배너 (뒤로가기 포함) ─────────────────────────────────────────
-function AlbumBanner() {
+function AlbumBanner({ onBack }: { onBack?: () => void }) {
   const album = useStore((s) => s.albums.find((a) => a.id === s.selectedAlbumId));
   const navigate = useNavigate();
   if (!album) return null;
@@ -19,7 +19,7 @@ function AlbumBanner() {
   return (
     <div style={{ height: 56, background: bg, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0 }}>
       <button
-        onClick={() => navigate('/collection')}
+        onClick={() => onBack ? onBack() : navigate('/collection')}
         style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         <Icon.back c="rgba(255,255,255,0.9)" />
@@ -33,7 +33,7 @@ function AlbumBanner() {
   );
 }
 
-export function PocaListScreen() {
+export function PocaListScreen({ onBack }: { onBack?: () => void }) {
   const album = useStore((s) => s.albums.find((a) => a.id === s.selectedAlbumId));
   const albumId = useStore((s) => s.selectedAlbumId);
   const cards = useStore((s) => s.cards);
@@ -82,7 +82,7 @@ export function PocaListScreen() {
 
   return (
     <>
-      <AlbumBanner />
+      <AlbumBanner onBack={onBack} />
       {/* 검색 + 뷰 토글 */}
       <div style={{ height: 46, background: T.s, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8, flexShrink: 0 }}>
         <div style={{ flex: 1, height: 36, borderRadius: 9, background: T.bl, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px' }}>
