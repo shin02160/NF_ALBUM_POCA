@@ -1,6 +1,6 @@
 // ── 포토북 편집/내보내기 (PRD v0.8 1-7/1-8) ─────────────────────────────
 import { useMemo, useRef, useState } from 'react';
-import { T, STATUS, STATUS_ORDER, MC, MEMBERS } from '../../theme/tokens';
+import { T, STATUS, STATUS_ORDER, MC, MEMBERS, ALBUM_BANNER_GRADIENT } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
 import { PocaCard } from '../../components/PocaCard';
@@ -66,11 +66,13 @@ export function Photobook() {
     setExporting(true);
     try {
       const canvas = await captureCanvas();
-      if (!canvas) return;
+      if (!canvas) { alert('이미지 캡처에 실패했습니다.'); return; }
       const link = document.createElement('a');
       link.download = fileName;
       link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (e) {
       console.error('PNG 저장 실패', e);
       alert('PNG 저장에 실패했습니다.');
@@ -83,17 +85,26 @@ export function Photobook() {
     setExporting(true);
     try {
       const canvas = await captureCanvas();
-      if (!canvas) return;
+      if (!canvas) { alert('이미지 캡처에 실패했습니다.'); return; }
       const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, 'image/png'));
-      if (!blob) return;
+      if (!blob) { alert('이미지 생성에 실패했습니다.'); return; }
       const file = new File([blob], fileName, { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'NF ALBUM POCA' });
       } else {
-        await savePng();
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
       }
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') console.error(e);
+      if ((e as Error).name !== 'AbortError') {
+        console.error('공유 실패', e);
+        alert('공유에 실패했습니다.');
+      }
     } finally {
       setExporting(false);
     }
@@ -113,12 +124,20 @@ export function Photobook() {
           {/* PNG 캡처 대상 */}
           <div ref={exportRef} style={{ background: T.s, borderRadius: 16, border: `1px solid ${T.b}`, overflow: 'hidden', boxShadow: '0 6px 28px rgba(0,0,0,0.06)' }}>
             {/* 헤더 */}
-            <div style={{ padding: '10px 16px', borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img src={LOGO} alt="" style={{ height: 18 }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: T.tm, letterSpacing: '0.04em' }}>{album?.name}</span>
+            <div style={{
+              background: album?.headerImage
+                ? `linear-gradient(120deg,rgba(0,0,0,0.5),rgba(0,0,0,0.2)),url(${album.headerImage}) center/cover`
+                : ALBUM_BANNER_GRADIENT,
+              padding: '10px 14px 12px',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <img src={LOGO} alt="" style={{ height: 16, filter: 'brightness(0) invert(1)' }} crossOrigin="anonymous" />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.04em' }}>{album?.name}</span>
               </div>
-              <p style={{ fontSize: 11, color: T.tl }}>{new Date().toISOString().slice(0, 10).replace(/-/g, '.')}</p>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>{new Date().toISOString().slice(0, 10).replace(/-/g, '.')}</span>
             </div>
             {/* 상태 범례 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 14px', borderBottom: `1px solid ${T.b}`, background: T.bg }}>
@@ -176,9 +195,8 @@ export function Photobook() {
         </div>
       </div>
       {/* 안내 배너 */}
-      <div style={{ background: T.pb, padding: '9px 16px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: T.pb, padding: '9px 16px', flexShrink: 0 }}>
         <span style={{ fontSize: 12, color: T.p }}>포카를 탭해서 포토북에 담아보세요</span>
-        <span style={{ fontSize: 11, color: T.p, fontWeight: 600, opacity: 0.7 }}>상태 테두리 유지</span>
       </div>
       {/* 상태 범례 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 16px', borderBottom: `1px solid ${T.b}`, background: T.bg, flexShrink: 0 }}>

@@ -11,6 +11,7 @@ import { filterCards, filterLabel } from '../../lib/selectors';
 // ── 앨범 배너 (뒤로가기 포함) ─────────────────────────────────────────
 function AlbumBanner() {
   const album = useStore((s) => s.albums.find((a) => a.id === s.selectedAlbumId));
+  const selectAlbum = useStore((s) => s.selectAlbum);
   const navigate = useNavigate();
   if (!album) return null;
   const bg = album.headerImage
@@ -20,7 +21,7 @@ function AlbumBanner() {
     <div style={{ height: 96, position: 'relative', flexShrink: 0, overflow: 'hidden', background: bg }}>
       <div style={{ position: 'absolute', inset: 0, opacity: 0.15, background: 'radial-gradient(circle at 80% 20%, #fff 0%, transparent 50%)' }} />
       <button
-        onClick={() => navigate('/')}
+        onClick={() => { void selectAlbum(null); navigate('/'); }}
         style={{ position: 'absolute', top: 10, left: 8, width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <Icon.back c="rgba(255,255,255,0.9)" />
@@ -69,7 +70,10 @@ export function PocaListScreen() {
 
       const memberRows = membersToShow
         .map((m) => ({ member: m, card: vCards.find((c) => c.member === m) ?? null }))
-        .filter((r) => !search || r.member.includes(search) || (r.card?.name ?? '').includes(search));
+        .filter((r) => {
+          if (filters.source.length > 0 && !r.card) return false;
+          return !search || r.member.includes(search) || (r.card?.name ?? '').includes(search);
+        });
 
       return { version: ver, sourceLabel: sources.join(' · '), memberRows };
     }).filter((g) => g.memberRows.length > 0);

@@ -56,5 +56,6 @@ input, select { font-family: inherit; }
     max-height: 100dvh !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
 }

@@ -53,7 +53,6 @@ function countBy<T extends string>(items: PocaCard[], key: (c: PocaCard) => T): 
 
 export function Dashboard() {
   const albumId = useStore((s) => s.selectedAlbumId);
-  const album = useStore((s) => s.albums.find((a) => a.id === s.selectedAlbumId));
   const allCards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
 
@@ -88,12 +87,13 @@ export function Dashboard() {
   const maxMember = Math.max(1, ...[...stats.totalByMember.values()]);
 
   const versionColor = (i: number) => (i === 0 ? T.p : '#8050DF');
+  const SOURCE_COLORS = [T.p, '#8050DF', '#00BF40', '#FF9200', '#20B2AA'];
+  const sourceColor = (i: number) => SOURCE_COLORS[i % SOURCE_COLORS.length];
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', gap: 13 }}>
       <div>
-        <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em', marginBottom: 2 }}>컬렉션 대시보드</p>
-        <p style={{ fontSize: 13, color: T.tm }}>{album?.name} · 발매 포카와 내 소장 현황</p>
+        <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>컬렉션 대시보드</p>
       </div>
 
       {/* [일반] */}
@@ -112,7 +112,7 @@ export function Dashboard() {
       </Section>
       <Section title="판매처별 포카 현황">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {stats.sourcesAll.map((s) => <BarRow key={s.name} label={s.name} n={s.n} max={maxSellerAll} color={T.p} />)}
+          {stats.sourcesAll.map((s, i) => <BarRow key={s.name} label={s.name} n={s.n} max={maxSellerAll} color={sourceColor(i)} />)}
         </div>
       </Section>
 
@@ -159,14 +159,17 @@ export function Dashboard() {
       </Section>
       <Section title="소장 현황 · 판매처별">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {stats.sourcesAll.map((s) => {
+          {stats.sourcesAll.map((s, i) => {
             const own = stats.sourcesOwned.get(s.name) ?? 0;
-            return <BarRow key={s.name} label={s.name} n={own} max={maxSellerAll} color={T.p} secondary={s.n} secondaryMax={maxSellerAll} />;
+            return <BarRow key={s.name} label={s.name} n={own} max={maxSellerAll} color={sourceColor(i)} secondary={s.n} secondaryMax={maxSellerAll} />;
           })}
         </div>
-        <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 11, borderTop: `1px solid ${T.b}` }}>
-          <Legend color={T.p} label="소장" />
-          <Legend color={T.p + '22'} label="전체 발매" />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12, paddingTop: 11, borderTop: `1px solid ${T.b}` }}>
+          {stats.sourcesAll.map((s, i) => <Legend key={s.name} color={sourceColor(i)} label={s.name} />)}
+          <div style={{ width: '100%', display: 'flex', gap: 12 }}>
+            <Legend color={T.tm} label="진한 색: 소장" />
+            <Legend color={T.bl} label="연한 색: 전체 발매" />
+          </div>
         </div>
       </Section>
       <Section title="소장 현황 · 멤버별">
