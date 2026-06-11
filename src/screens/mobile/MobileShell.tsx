@@ -1,5 +1,5 @@
 // ── 모바일 셸: 탭 전환 + 오버레이 ────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PhoneFrame } from '../../components/PhoneFrame';
 import { BottomTab, type TabId } from '../../components/BottomTab';
@@ -19,8 +19,14 @@ export function MobileShell() {
   const tab = loc.pathname.replace('/', '');
   const navigate = useNavigate();
   const photobook = useStore((s) => s.photobook);
+  const cards = useStore((s) => s.cards);
   const statusSheetOpen = useStore((s) => s.statusSheet.open);
   const filterModalOpen = useStore((s) => s.filterModal.open);
+
+  const bookCount = useMemo(() => {
+    const ids = new Set(cards.map((c) => c.id));
+    return photobook.filter((id) => ids.has(id)).length;
+  }, [photobook, cards]);
 
   const active = (VALID.includes(tab as TabId) ? tab : 'album') as TabId;
   const [albumListVisible, setAlbumListVisible] = useState(true);
@@ -37,7 +43,7 @@ export function MobileShell() {
       )}
       {active === 'dash' && <Dashboard />}
       {active === 'book' && <Photobook />}
-      <BottomTab active={active} bookCount={photobook.length} onChange={(id) => navigate(`/${id}`)} />
+      <BottomTab active={active} bookCount={bookCount} onChange={(id) => navigate(`/${id}`)} />
       {statusSheetOpen && <StatusSheet />}
       {filterModalOpen && <FilterModal />}
     </PhoneFrame>

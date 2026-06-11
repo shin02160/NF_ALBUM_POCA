@@ -1,18 +1,25 @@
 // ── 포토북 편집/내보내기 (PRD v0.8 1-7/1-8) ─────────────────────────────
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { T, STATUS, STATUS_ORDER, MC, MEMBERS, ALBUM_BANNER_GRADIENT } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
 import { PocaCard } from '../../components/PocaCard';
 import { useStore } from '../../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { PocaCard as Card } from '../../types';
 
 export function Photobook() {
   const photobook = useStore((s) => s.photobook);
   const cards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
-  const album = useStore((s) => s.albums.find((a) => a.id === s.selectedAlbumId));
+  const allAlbums = useStore(useShallow((s) => s.albums));
   const remove = useStore((s) => s.removeFromPhotobook);
+  const ensureCards = useStore((s) => s.ensureCards);
+  const albumIds = useStore(useShallow((s) => s.albums.map((a) => a.id)));
+
+  useEffect(() => {
+    albumIds.forEach((id) => ensureCards(id));
+  }, [albumIds, ensureCards]);
 
   const [mode, setMode] = useState<'edit' | 'export'>('edit');
   const [exporting, setExporting] = useState(false);
@@ -26,29 +33,51 @@ export function Photobook() {
 
   const empty = bookCards.length === 0;
 
-  // 버전별 섹션 (편집용 — 포토북 카드만)
-  const editGroups = useMemo(() => {
-    const versions = album?.versions || [];
-    return versions.map((ver) => {
-      const vCards = bookCards.filter((c) => c.version === ver);
-      const sources = [...new Set(vCards.map((c) => c.source))];
-      return {
-        version: ver,
-        sourceLabel: sources.join(' · '),
-        memberRows: MEMBERS.map((m) => ({ member: m, card: vCards.find((c) => c.member === m) ?? null })),
-      };
-    }).filter((g) => g.memberRows.some((r) => r.card));
-  }, [album, bookCards]);
+  // 단일/다중 앨범 여부
+  const bookAlbumIds = useMemo(() => [...new Set(bookCards.map((c) => c.albumId))], [bookCards]);
+  const hasMultipleAlbums = bookAlbumIds.length > 1;
+  const singleAlbum = hasMultipleAlbums ? null : allAlbums.find((a) => a.id === bookAlbumIds[0]) ?? null;
 
-  // 버전별 섹션 (내보내기용 — 포토북 카드를 멤버 순서로)
+  // 버전별 섹션 (편집용) — 앨범 그룹핑
+  const editGroups = useMemo(() => {
+    return allAlbums
+      .map((album) => {
+        const albumBookCards = bookCards.filter((c) => c.albumId === album.id);
+        if (albumBookCards.length === 0) return null;
+        const vGroups = album.versions
+          .map((ver) => {
+            const vCards = albumBookCards.filter((c) => c.version === ver);
+            const sources = [...new Set(vCards.map((c) => c.source))];
+            return {
+              version: ver,
+              sourceLabel: sources.join(' · '),
+              memberRows: MEMBERS.map((m) => ({
+                member: m,
+                card: vCards.find((c) => !c.member.includes(',') && c.member.trim() === m) ?? null,
+              })),
+            };
+          })
+          .filter((g) => g.memberRows.some((r) => r.card));
+        if (vGroups.length === 0) return null;
+        return { album, vGroups };
+      })
+      .filter((ag): ag is NonNullable<typeof ag> => ag !== null);
+  }, [allAlbums, bookCards]);
+
+  // 버전별 섹션 (내보내기용)
   const exportSections = useMemo(() => {
-    const versions = album?.versions || [];
-    return versions.map((ver) => {
-      const rows = MEMBERS.map((m) => bookCards.find((c) => c.version === ver && c.member === m)).filter(Boolean) as Card[];
-      const sources = [...new Set(rows.map((c) => c.source))];
-      return { version: ver, sourceLabel: sources.join(' · '), rows };
-    }).filter((s) => s.rows.length > 0);
-  }, [album, bookCards]);
+    return allAlbums.flatMap((album) =>
+      album.versions
+        .map((ver) => {
+          const rows = MEMBERS
+            .map((m) => bookCards.find((c) => c.albumId === album.id && c.version === ver && !c.member.includes(',') && c.member.trim() === m))
+            .filter((c): c is Card => Boolean(c));
+          const sources = [...new Set(rows.map((c) => c.source))];
+          return { albumId: album.id, albumName: album.name, version: ver, sourceLabel: sources.join(' · '), rows };
+        })
+        .filter((s) => s.rows.length > 0),
+    );
+  }, [allAlbums, bookCards]);
 
   const fileName = useMemo(() => {
     const d = new Date();
@@ -125,8 +154,8 @@ export function Photobook() {
           <div ref={exportRef} style={{ background: T.s, borderRadius: 16, border: `1px solid ${T.b}`, overflow: 'hidden', boxShadow: '0 6px 28px rgba(0,0,0,0.06)' }}>
             {/* 헤더 */}
             <div style={{
-              background: album?.headerImage
-                ? `linear-gradient(120deg,rgba(0,0,0,0.5),rgba(0,0,0,0.2)),url(${album.headerImage}) center/cover`
+              background: singleAlbum?.headerImage
+                ? `linear-gradient(120deg,rgba(0,0,0,0.5),rgba(0,0,0,0.2)),url(${singleAlbum.headerImage}) center/cover`
                 : ALBUM_BANNER_GRADIENT,
               padding: '10px 14px 12px',
               display: 'flex',
@@ -135,7 +164,7 @@ export function Photobook() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <img src={LOGO} alt="" style={{ height: 16, filter: 'brightness(0) invert(1)' }} crossOrigin="anonymous" />
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.04em' }}>{album?.name}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.04em' }}>{singleAlbum?.name ?? 'N.Flying POCA'}</span>
               </div>
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>{new Date().toISOString().slice(0, 10).replace(/-/g, '.')}</span>
             </div>
@@ -149,9 +178,10 @@ export function Photobook() {
               ))}
             </div>
             {/* 버전별 섹션 */}
-            {exportSections.map(({ version, sourceLabel, rows }) => (
-              <div key={version}>
+            {exportSections.map(({ albumId, albumName, version, sourceLabel, rows }) => (
+              <div key={`${albumId}-${version}`}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px 5px', borderBottom: `1px solid ${T.b}`, background: T.bg }}>
+                  {hasMultipleAlbums && <span style={{ fontSize: 11, fontWeight: 600, color: T.p }}>{albumName} ·</span>}
                   <span style={{ fontSize: 11, fontWeight: 700, color: T.t }}>{version}</span>
                   {sourceLabel && (
                     <>
@@ -216,34 +246,43 @@ export function Photobook() {
             <span style={{ fontSize: 12 }}>포카를 탭해서 담아보세요</span>
           </div>
         ) : (
-          editGroups.map(({ version, sourceLabel, memberRows }) => (
-            <div key={version}>
-              {/* 섹션 헤더 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 8px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{version}</span>
-                {sourceLabel && (
-                  <>
-                    <span style={{ width: 1, height: 12, background: T.b }} />
-                    <span style={{ fontSize: 12, color: T.tm, fontWeight: 500 }}>{sourceLabel}</span>
-                  </>
-                )}
-              </div>
-              {/* 멤버행 */}
-              {memberRows.map(({ member, card }) => (
-                <div key={member} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}` }}>
-                  <div style={{ flexShrink: 0, opacity: card ? 1 : 0.25 }}><Icon.drag /></div>
-                  <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{member}</span>
+          editGroups.map(({ album, vGroups }) => (
+            <div key={album.id}>
+              {hasMultipleAlbums && (
+                <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 6px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: T.p }}>{album.name}</span>
+                </div>
+              )}
+              {vGroups.map(({ version, sourceLabel, memberRows }) => (
+                <div key={version}>
+                  {/* 섹션 헤더 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 8px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{version}</span>
+                    {sourceLabel && (
+                      <>
+                        <span style={{ width: 1, height: 12, background: T.b }} />
+                        <span style={{ fontSize: 12, color: T.tm, fontWeight: 500 }}>{sourceLabel}</span>
+                      </>
+                    )}
                   </div>
-                  {card
-                    ? <div style={{ width: 46 }}><PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={46} radius={6} /></div>
-                    : <div style={{ width: 46, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
-                  {card && (
-                    <button onClick={() => remove(card.id)} style={{ marginLeft: 'auto', width: 28, height: 28, borderRadius: '50%', background: T.bl, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer' }}>
-                      <Icon.close c={T.tm} sz={9} />
-                    </button>
-                  )}
+                  {/* 멤버행 */}
+                  {memberRows.map(({ member, card }) => (
+                    <div key={member} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}` }}>
+                      <div style={{ flexShrink: 0, opacity: card ? 1 : 0.25 }}><Icon.drag /></div>
+                      <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{member}</span>
+                      </div>
+                      {card
+                        ? <div style={{ width: 46 }}><PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={46} radius={6} /></div>
+                        : <div style={{ width: 46, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
+                      {card && (
+                        <button onClick={() => remove(card.id)} style={{ marginLeft: 'auto', width: 28, height: 28, borderRadius: '50%', background: T.bl, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer' }}>
+                          <Icon.close c={T.tm} sz={9} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

@@ -9,13 +9,42 @@ import { useShallow } from 'zustand/react/shallow';
 import { filterLabel } from '../../lib/selectors';
 import type { PocaCard as Card } from '../../types';
 
-type MemberRow = { member: string; cards: Card[] };
-type VerGroup = { version: string; sourceLabel: string; memberRows: MemberRow[] };
+type MemberRow = { member: string; displayName: string; cards: Card[] };
+type VerGroup = { version: string; source: string; memberRows: MemberRow[] };
 type AlbumGroup = {
   albumId: string; albumName: string;
   versions: string[]; sources: string[];
   versionGroups: VerGroup[];
 };
+
+// 멤버 색상 (유닛은 첫 번째 멤버 색상 사용)
+function memberDotColor(member: string): string {
+  return MC[member.split(',')[0].trim()] || T.tm;
+}
+
+// 멤버행 빌더: 개별 멤버(단일) + 유닛(다중) 분리
+function buildMemberRows(sCards: Card[], membersToShow: string[], showEmpty: boolean): MemberRow[] {
+  // 개별 멤버행: 단일 멤버 포카만 (정확히 일치)
+  const individualRows: MemberRow[] = membersToShow
+    .map((m) => ({
+      member: m,
+      displayName: m,
+      cards: sCards.filter((c) => !c.member.includes(',') && c.member.trim() === m),
+    }))
+    .filter((r) => r.cards.length > 0 || showEmpty);
+
+  // 유닛행: 다중 멤버 포카 (member 문자열 기준 그룹)
+  const unitStrings = [...new Set(sCards.filter((c) => c.member.includes(',')).map((c) => c.member))];
+  const unitRows: MemberRow[] = unitStrings
+    .map((unit) => ({
+      member: unit,
+      displayName: unit.split(',').map((s) => s.trim()).join(' · '),
+      cards: sCards.filter((c) => c.member === unit),
+    }))
+    .filter((r) => r.cards.length > 0);
+
+  return [...individualRows, ...unitRows];
+}
 
 export function CollectionView() {
   const albums = useStore(useShallow((s) => s.albums.filter((a) => a.isVisible !== false)));
@@ -38,7 +67,7 @@ export function CollectionView() {
   function handleAlbumSelect(id: string | null) {
     setAlbumFilter(id);
     if (id !== null) {
-      void selectAlbum(id); // selectAlbum already resets filters
+      void selectAlbum(id);
     } else {
       resetFilters();
     }
@@ -49,14 +78,20 @@ export function CollectionView() {
       const albumGroups: AlbumGroup[] = [];
       for (const album of albums) {
         const albumCards = cards.filter((c) => c.albumId === album.id);
-        const verGroups: VerGroup[] = album.versions.map((ver) => {
-          const vCards = albumCards.filter((c) => c.version === ver);
-          const sources = [...new Set(vCards.map((c) => c.source))];
-          const memberRows = MEMBERS
-            .map((m) => ({ member: m, cards: vCards.filter((c) => c.member.split(',').map((s) => s.trim()).includes(m)) }))
-            .filter((r) => r.cards.length > 0);
-          return { version: ver, sourceLabel: sources.join(' · '), memberRows };
-        }).filter((g) => g.memberRows.length > 0);
+        const verGroups: VerGroup[] = [];
+
+        for (const ver of album.versions) {
+          const allVerCards = albumCards.filter((c) => c.version === ver);
+          const sources = [...new Set(allVerCards.map((c) => c.source))];
+
+          for (const src of sources) {
+            const sCards = allVerCards.filter((c) => c.source === src);
+            const memberRows = buildMemberRows(sCards, MEMBERS, false);
+            if (memberRows.length > 0) {
+              verGroups.push({ version: ver, source: src, memberRows });
+            }
+          }
+        }
 
         if (verGroups.length > 0) {
           albumGroups.push({
@@ -79,19 +114,66 @@ export function CollectionView() {
       ? album.versions.filter((v) => filters.version.includes(v))
       : album.versions;
 
-    const versionGroups: VerGroup[] = versions.map((ver) => {
-      let vCards = albumCards.filter((c) => c.version === ver);
-      if (filters.source.length > 0) vCards = vCards.filter((c) => filters.source.includes(c.source));
-      const sources = [...new Set(albumCards.filter((c) => c.version === ver).map((c) => c.source))];
-      const membersToShow = filters.member.length > 0 ? MEMBERS.filter((m) => filters.member.includes(m)) : MEMBERS;
-      const memberRows = membersToShow
-        .map((m) => ({ member: m, cards: vCards.filter((c) => c.member.split(',').map((s) => s.trim()).includes(m)) }))
-        .filter((r) => !(filters.source.length > 0 && r.cards.length === 0));
-      return { version: ver, sourceLabel: sources.join(' · '), memberRows };
-    }).filter((g) => g.memberRows.length > 0);
+    const versionGroups: VerGroup[] = [];
+    const membersToShow = filters.member.length > 0 ? MEMBERS.filter((m) => filters.member.includes(m)) : MEMBERS;
+
+    for (const ver of versions) {
+      let allVerCards = albumCards.filter((c) => c.version === ver);
+      if (filters.source.length > 0) allVerCards = allVerCards.filter((c) => filters.source.includes(c.source));
+
+      const sources = [...new Set(allVerCards.map((c) => c.source))];
+
+      for (const src of sources) {
+        const sCards = allVerCards.filter((c) => c.source === src);
+        // 소스 필터 활성 시 빈 행 표시 (어떤 멤버가 없는지 확인 가능)
+        const memberRows = buildMemberRows(sCards, membersToShow, filters.source.length > 0);
+        if (memberRows.length > 0) {
+          versionGroups.push({ version: ver, source: src, memberRows });
+        }
+      }
+    }
 
     return { mode: 'album', versionGroups };
   }, [albums, cards, albumFilter, filters]);
+
+  // 공통 멤버행 렌더러
+  function renderMemberRows(memberRows: MemberRow[]) {
+    return memberRows.map(({ member, displayName, cards: rowCards }) => (
+      <div
+        key={member}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}`, fontFamily: T.f }}
+      >
+        <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: memberDotColor(member), flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{displayName}</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {rowCards.length > 0
+            ? rowCards.map((card) => (
+                <button key={card.id} onClick={() => openStatusSheet(card.id)} style={{ width: 52, flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                  <PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={52} radius={6} />
+                </button>
+              ))
+            : <div style={{ width: 52, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
+        </div>
+      </div>
+    ));
+  }
+
+  // 공통 버전 섹션 헤더
+  function renderVerHeader(version: string, source: string, compact = false) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: compact ? '8px 16px 6px' : '10px 16px 8px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
+        <span style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{version}</span>
+        {source && (
+          <>
+            <span style={{ width: 1, height: compact ? 10 : 12, background: T.b }} />
+            <span style={{ fontSize: compact ? 11 : 12, color: T.tm, fontWeight: 500 }}>{source}</span>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -101,13 +183,13 @@ export function CollectionView() {
       </div>
 
       {/* 앨범 chip 선택 */}
-      <div style={{ background: T.s, borderBottom: `1px solid ${T.b}`, padding: '10px 0', flexShrink: 0, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      <div style={{ background: T.s, borderBottom: `1px solid ${T.b}`, padding: '8px 0', flexShrink: 0, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         <div style={{ display: 'inline-flex', gap: 8, padding: '0 16px', minWidth: '100%' }}>
           {/* 전체 chip */}
           <button
             onClick={() => handleAlbumSelect(null)}
             style={{
-              height: 52, padding: '0 16px', borderRadius: 10,
+              height: 36, padding: '0 16px', borderRadius: 10,
               border: `${albumFilter === null ? 1.5 : 1}px solid ${albumFilter === null ? T.p : T.b}`,
               background: albumFilter === null ? T.pb : T.s,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -126,19 +208,15 @@ export function CollectionView() {
                 key={album.id}
                 onClick={() => handleAlbumSelect(album.id)}
                 style={{
-                  minWidth: 108, height: 52, padding: '0 13px', borderRadius: 10,
+                  height: 36, padding: '0 14px', borderRadius: 10,
                   border: `${on ? 1.5 : 1}px solid ${on ? T.p : T.b}`,
                   background: on ? T.pb : T.s,
-                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 3,
-                  cursor: 'pointer', fontFamily: T.f, flexShrink: 0, textAlign: 'left',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontFamily: T.f, flexShrink: 0,
                   boxShadow: on ? '0 2px 8px rgba(51,102,255,0.12)' : 'none',
                 }}
               >
-                <span style={{ fontSize: 12, fontWeight: 700, color: on ? T.p : T.t, whiteSpace: 'nowrap' }}>{album.name}</span>
-                <span style={{ fontSize: 10, color: on ? T.p : T.tl, whiteSpace: 'nowrap', opacity: on ? 0.8 : 1 }}>
-                  {album.versions.join(' / ')}
-                  {album.sources.length > 0 && ` · ${album.sources.join(' / ')}`}
-                </span>
+                <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? T.p : T.t, whiteSpace: 'nowrap' }}>{album.name}</span>
               </button>
             );
           })}
@@ -177,35 +255,10 @@ export function CollectionView() {
                     {versions.join(' / ')}{sources.length > 0 && ` · ${sources.join(' / ')}`}
                   </span>
                 </div>
-                {versionGroups.map(({ version, sourceLabel, memberRows }) => (
-                  <div key={version}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px 6px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: T.t }}>{version}</span>
-                      {sourceLabel && (
-                        <>
-                          <span style={{ width: 1, height: 10, background: T.b }} />
-                          <span style={{ fontSize: 11, color: T.tm }}>{sourceLabel}</span>
-                        </>
-                      )}
-                    </div>
-                    {memberRows.map(({ member, cards: rowCards }) => (
-                      <div
-                        key={member}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}`, fontFamily: T.f }}
-                      >
-                        <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
-                          <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{member}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {rowCards.map((card) => (
-                            <button key={card.id} onClick={() => openStatusSheet(card.id)} style={{ width: 52, flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                              <PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={52} radius={6} />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                {versionGroups.map(({ version, source, memberRows }) => (
+                  <div key={`${version}-${source}`}>
+                    {renderVerHeader(version, source, true)}
+                    {renderMemberRows(memberRows)}
                   </div>
                 ))}
               </div>
@@ -215,37 +268,10 @@ export function CollectionView() {
           contentData.versionGroups.length === 0 ? (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.tl, fontSize: 13 }}>표시할 포카가 없습니다</div>
           ) : (
-            contentData.versionGroups.map(({ version, sourceLabel, memberRows }) => (
-              <div key={version}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 8px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{version}</span>
-                  {sourceLabel && (
-                    <>
-                      <span style={{ width: 1, height: 12, background: T.b }} />
-                      <span style={{ fontSize: 12, color: T.tm, fontWeight: 500 }}>{sourceLabel}</span>
-                    </>
-                  )}
-                </div>
-                {memberRows.map(({ member, cards: rowCards }) => (
-                  <div
-                    key={member}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}`, fontFamily: T.f }}
-                  >
-                    <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{member}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {rowCards.length > 0
-                        ? rowCards.map((card) => (
-                            <button key={card.id} onClick={() => openStatusSheet(card.id)} style={{ width: 52, flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                              <PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} width={52} radius={6} />
-                            </button>
-                          ))
-                        : <div style={{ width: 52, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
-                    </div>
-                  </div>
-                ))}
+            contentData.versionGroups.map(({ version, source, memberRows }) => (
+              <div key={`${version}-${source}`}>
+                {renderVerHeader(version, source)}
+                {renderMemberRows(memberRows)}
               </div>
             ))
           )

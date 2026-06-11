@@ -64,12 +64,32 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
       const sources = [...new Set(albumCards.filter((c) => c.version === ver).map((c) => c.source))];
       const membersToShow = filters.member.length > 0 ? MEMBERS.filter((m) => filters.member.includes(m)) : MEMBERS;
 
-      const memberRows = membersToShow
-        .map((m) => ({ member: m, cards: vCards.filter((c) => c.member.split(',').map((s) => s.trim()).includes(m)) }))
+      // 개별 멤버행: 단일 멤버 포카만 (정확히 일치)
+      const individualRows = membersToShow
+        .map((m) => ({
+          member: m,
+          displayName: m,
+          cards: vCards.filter((c) => !c.member.includes(',') && c.member.trim() === m),
+        }))
         .filter((r) => {
           if (filters.source.length > 0 && r.cards.length === 0) return false;
           return !search || r.member.includes(search) || r.cards.some((c) => c.name.includes(search));
         });
+
+      // 유닛행: 다중 멤버 포카 (member 문자열 기준 그룹)
+      const unitStrings = [...new Set(vCards.filter((c) => c.member.includes(',')).map((c) => c.member))];
+      const unitRows = unitStrings
+        .map((unit) => ({
+          member: unit,
+          displayName: unit.split(',').map((s) => s.trim()).join(' · '),
+          cards: vCards.filter((c) => c.member === unit),
+        }))
+        .filter((r) => {
+          if (filters.source.length > 0 && r.cards.length === 0) return false;
+          return !search || r.cards.some((c) => c.name.includes(search));
+        });
+
+      const memberRows = [...individualRows, ...unitRows];
 
       return { version: ver, sourceLabel: sources.join(' · '), memberRows };
     }).filter((g) => g.memberRows.length > 0);
@@ -136,14 +156,14 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
                     </>
                   )}
                 </div>
-                {memberRows.map(({ member, cards: rowCards }) => (
+                {memberRows.map(({ member, displayName, cards: rowCards }) => (
                   <div
                     key={member}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${T.bl}`, fontFamily: T.f }}
                   >
                     <div style={{ width: 44, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{member}</span>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: MC[member.split(',')[0].trim()] || T.tm, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: T.t, whiteSpace: 'nowrap' }}>{displayName}</span>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {rowCards.length > 0
