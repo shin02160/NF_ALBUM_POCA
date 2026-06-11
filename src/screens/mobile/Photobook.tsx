@@ -8,7 +8,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { T, STATUS } from '../../theme/tokens';
+import { T, STATUS, ALBUM_BANNER_GRADIENT } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { MemberBadge } from '../../components/atoms';
 import { Icon } from '../../components/icons';
@@ -59,6 +59,12 @@ export function Photobook() {
     const map = new Map(cards.map((c) => [c.id, c]));
     return photobook.map((id) => map.get(id)).filter((c): c is Card => Boolean(c));
   }, [photobook, cards]);
+
+  // 해당 앨범의 모든 카드 (내보내기용)
+  const allAlbumCards = useMemo(() =>
+    cards.filter((c) => c.albumId === album?.id).sort((a, b) => a.sortOrder - b.sortOrder),
+    [cards, album?.id],
+  );
 
   const fileName = useMemo(() => {
     const d = new Date();
@@ -122,34 +128,75 @@ export function Photobook() {
   const empty = bookCards.length === 0;
 
   if (mode === 'export') {
+    const albumBg = album?.headerImage
+      ? `linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)), url(${album.headerImage}) center/cover`
+      : ALBUM_BANNER_GRADIENT;
+
     return (
       <>
-        <div style={{ height: 54, background: T.s, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', padding: '0 12px', flexShrink: 0 }}>
-          <button onClick={() => setMode('edit')} style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}><Icon.back /></button>
-          <span style={{ fontSize: 17, fontWeight: 600, color: T.t }}>포토북 내보내기</span>
-        </div>
-        <div style={{ flex: 1, padding: '20px 20px 14px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
-          <div ref={exportRef} style={{ background: T.s, borderRadius: 16, border: `1px solid ${T.b}`, overflow: 'hidden', boxShadow: '0 6px 28px rgba(0,0,0,0.06)' }}>
-            <div style={{ padding: '12px 18px', borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img src={LOGO} alt="" style={{ height: 20 }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: T.tm, letterSpacing: '0.04em' }}>{album?.name}</span>
-              </div>
-              <p style={{ fontSize: 11, color: T.tl }}>{new Date().toISOString().slice(0, 10).replace(/-/g, '.')}</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, padding: 14 }}>
-              {bookCards.map((card) => (
-                <div key={card.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] ?? null} radius={6} />
-                  <p style={{ fontSize: 8, color: T.tl, textAlign: 'center', fontWeight: 500 }}>{card.member}</p>
-                </div>
-              ))}
+        {/* 상단: 앨범 헤더와 동일 + 뒤로가기 */}
+        <div style={{ height: 96, position: 'relative', flexShrink: 0, overflow: 'hidden', background: albumBg }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.15, background: 'radial-gradient(circle at 80% 20%, #fff 0%, transparent 50%)' }} />
+          <button
+            onClick={() => setMode('edit')}
+            style={{ position: 'absolute', top: 12, left: 12, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon.back c="#fff" />
+          </button>
+          <div style={{ position: 'absolute', left: 16, bottom: 14, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+            <img src={LOGO} alt="" style={{ height: 26, filter: 'brightness(0) invert(1)' }} />
+            <div>
+              <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{album?.name}</p>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{[album?.sub, album?.year].filter(Boolean).join(' · ')}</p>
             </div>
           </div>
-          <p style={{ fontSize: 11, color: T.tl, textAlign: 'center' }}>{fileName}</p>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={share} disabled={exporting} style={btnStyle}><Icon.share /><span style={{ fontSize: 14, fontWeight: 600, color: T.t }}>공유하기</span></button>
-            <button onClick={savePng} disabled={exporting} style={btnStyle}><span style={{ fontSize: 15, color: T.t }}>↓</span><span style={{ fontSize: 14, fontWeight: 600, color: T.t }}>{exporting ? '저장 중…' : 'PNG 저장'}</span></button>
+        </div>
+
+        {/* 스크롤 영역 */}
+        <div style={{ flex: 1, overflowY: 'auto', background: T.bg }}>
+          {/* PNG 캡처 대상 */}
+          <div ref={exportRef} style={{ background: T.s, margin: '16px 16px 0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.07)' }}>
+            {/* 내보내기 헤더 */}
+            <div style={{ background: albumBg, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src={LOGO} alt="" style={{ height: 18, filter: 'brightness(0) invert(1)' }} />
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>{album?.name}</p>
+                  {(album?.sub || album?.year) && (
+                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{[album?.sub, album?.year].filter(Boolean).join(' · ')}</p>
+                  )}
+                </div>
+              </div>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>{new Date().toISOString().slice(0, 10).replace(/-/g, '.')}</p>
+            </div>
+            {/* 앨범 전체 카드 그리드 (멤버 이름 미노출, 상태 테두리 유지) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, padding: '12px 12px 14px' }}>
+              {allAlbumCards.map((card) => {
+                const st = statusMap[card.id] ?? null;
+                return (
+                  <div key={card.id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <PocaCard member={card.member} img={card.imageUrl} status={st} radius={5} hideName />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '0 1px' }}>
+                      <p style={{ fontSize: 7, color: T.tl, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Ver. {card.version}</p>
+                      <p style={{ fontSize: 7.5, color: T.tm, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.member}</p>
+                      <p style={{ fontSize: 7, color: T.tl, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.source}</p>
+                      {st
+                        ? <p style={{ fontSize: 7, color: STATUS[st].c, fontWeight: 700 }}>{st}</p>
+                        : <p style={{ fontSize: 7, color: T.b }}>—</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 파일명 + 액션 버튼 */}
+          <div style={{ padding: '12px 16px 20px' }}>
+            <p style={{ fontSize: 11, color: T.tl, textAlign: 'center', marginBottom: 12 }}>{fileName}</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={share} disabled={exporting} style={btnStyle}><Icon.share /><span style={{ fontSize: 14, fontWeight: 600, color: T.t }}>공유하기</span></button>
+              <button onClick={savePng} disabled={exporting} style={btnStyle}><span style={{ fontSize: 15, color: T.t }}>↓</span><span style={{ fontSize: 14, fontWeight: 600, color: T.t }}>{exporting ? '저장 중…' : 'PNG 저장'}</span></button>
+            </div>
           </div>
         </div>
       </>

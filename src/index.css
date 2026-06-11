@@ -42,3 +42,19 @@ input, select { font-family: inherit; }
 
 /* 스크롤바 정리 */
 ::-webkit-scrollbar { width: 0; height: 0; }
+
+/* 모바일 브라우저 최적화: 실제 모바일 기기에서는 전체 화면 사용 */
+@media (max-width: 500px) {
+  .phone-outer {
+    min-height: 100dvh !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+  .phone-frame {
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}

@@ -2,7 +2,6 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PhoneFrame } from '../../components/PhoneFrame';
-import { SBar } from '../../components/atoms';
 import { BottomTab, type TabId } from '../../components/BottomTab';
 import { useStore } from '../../store/useStore';
 import { PocaListScreen } from './PocaListScreen';
@@ -33,7 +32,6 @@ export function MobileShell() {
 
   return (
     <PhoneFrame bg={active === 'list' ? '#ffffff' : '#f5f5f7'}>
-      <SBar />
       {active === 'list' && <PocaListScreen />}
       {active === 'dash' && <Dashboard />}
       {active === 'book' && <Photobook />}

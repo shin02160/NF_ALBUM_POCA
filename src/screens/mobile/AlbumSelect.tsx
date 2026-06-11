@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { T, MC, MEMBERS } from '../../theme/tokens';
 import { LOGO } from '../../assets';
-import { SBar, Pill } from '../../components/atoms';
+import { Pill } from '../../components/atoms';
 import { Icon } from '../../components/icons';
 import { useStore } from '../../store/useStore';
 
@@ -13,7 +13,6 @@ export function AlbumSelect() {
 
   return (
     <>
-      <SBar />
       <div style={{ height: 54, background: T.s, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', flexShrink: 0 }}>
         <img src={LOGO} alt="NFlying" style={{ height: 50, width: 'auto' }} />
         <button onClick={() => navigate('/admin')} style={{ height: 32, padding: '0 12px', borderRadius: 100, background: T.bl, display: 'flex', alignItems: 'center', gap: 5, border: 'none', cursor: 'pointer' }}>

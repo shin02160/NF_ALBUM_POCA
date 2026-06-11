@@ -9,17 +9,20 @@ interface Props {
   width?: number | string;
   radius?: number;
   nameLabel?: string;
+  hideName?: boolean;
 }
 
-export function PocaCard({ member = '승협', img, status, width = '100%', radius = 8, nameLabel }: Props) {
+export function PocaCard({ member = '승협', img, status, width = '100%', radius = 8, nameLabel, hideName }: Props) {
   const sc = status ? STATUS[status].c : null;
   const border = sc ? `2.5px solid ${sc}` : `1px solid ${T.b}`;
   const inner = img ? (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <img src={img} alt={member} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '18px 6px 6px', background: 'linear-gradient(transparent, rgba(0,0,0,0.46))' }}>
-        <p style={{ textAlign: 'center', fontSize: 8, fontWeight: 700, color: '#fff', fontFamily: T.f, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{nameLabel || member}</p>
-      </div>
+      {!hideName && (
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '18px 6px 6px', background: 'linear-gradient(transparent, rgba(0,0,0,0.46))' }}>
+          <p style={{ textAlign: 'center', fontSize: 8, fontWeight: 700, color: '#fff', fontFamily: T.f, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{nameLabel || member}</p>
+        </div>
+      )}
     </div>
   ) : (
     <div style={{ width: '100%', height: '100%', background: '#dbeafe', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, padding: 8 }}>
