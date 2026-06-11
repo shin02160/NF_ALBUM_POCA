@@ -11,6 +11,7 @@ import {
 // ── LocalStorage helpers (PRD 3-3) ─────────────────────────────────────
 const LS_STATUS = 'poca_status';
 const LS_PHOTOBOOK = 'poca_photobook';
+const LS_ALBUM = 'poca_album';
 
 function loadStatus(): PocaStatusMap {
   try { return JSON.parse(localStorage.getItem(LS_STATUS) || '{}'); }
@@ -25,6 +26,14 @@ function loadPhotobook(): string[] {
 }
 function savePhotobook(ids: string[]) {
   localStorage.setItem(LS_PHOTOBOOK, JSON.stringify(ids));
+}
+function loadAlbumId(): string | null {
+  try { return localStorage.getItem(LS_ALBUM); }
+  catch { return null; }
+}
+function saveAlbumId(id: string | null) {
+  try { id ? localStorage.setItem(LS_ALBUM, id) : localStorage.removeItem(LS_ALBUM); }
+  catch {}
 }
 
 // 첫 실행 데모용 시드 (localStorage 비어있을 때만)
@@ -101,35 +110,39 @@ export const useStore = create<State>((set, get) => ({
 
   async loadData() {
     set({ loading: true });
-    // 사용자 상태 로드 (+ 첫 실행 시 데모 시드)
     let statusMap = loadStatus();
     if (Object.keys(statusMap).length === 0 && !localStorage.getItem(LS_STATUS)) {
       statusMap = { ...DEMO_STATUS };
       saveStatus(statusMap);
     }
     const photobook = loadPhotobook();
+    const savedAlbumId = loadAlbumId();
 
     if (isSupabaseConfigured) {
       try {
         const albums = await fetchAlbums();
-        // 전체 카드는 앨범 선택 시 lazy load. 초기엔 빈 배열.
-        set({ albums, cards: [], statusMap, photobook, loading: false });
+        const selectedAlbumId = albums.some((a) => a.id === savedAlbumId) ? savedAlbumId : null;
+        set({ albums, cards: [], statusMap, photobook, selectedAlbumId, loading: false });
         return;
       } catch (e) {
         console.warn('Supabase fetch 실패 → 샘플 데이터 폴백', e);
       }
     }
+    const albums = SAMPLE_ALBUMS;
+    const selectedAlbumId = albums.some((a) => a.id === savedAlbumId) ? savedAlbumId : null;
     set({
-      albums: SAMPLE_ALBUMS,
+      albums,
       cards: SAMPLE_CARDS,
       statusMap,
       photobook,
+      selectedAlbumId,
       loading: false,
       usingSupabase: false,
     });
   },
 
   async selectAlbum(id) {
+    saveAlbumId(id);
     set({ selectedAlbumId: id, filters: emptyFilters(), search: '' });
     if (id && get().usingSupabase) {
       const existing = get().cards.some((c) => c.albumId === id);

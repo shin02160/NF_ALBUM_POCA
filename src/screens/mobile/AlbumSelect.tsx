@@ -4,13 +4,11 @@ import { T, MC, MEMBERS } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Pill } from '../../components/atoms';
 import { Icon } from '../../components/icons';
-import { BottomTab } from '../../components/BottomTab';
 import { useStore } from '../../store/useStore';
 
 export function AlbumSelect() {
   const albums = useStore((s) => s.albums);
   const selectAlbum = useStore((s) => s.selectAlbum);
-  const photobook = useStore((s) => s.photobook);
   const navigate = useNavigate();
 
   return (
@@ -50,7 +48,6 @@ export function AlbumSelect() {
           </button>
         ))}
       </div>
-      <BottomTab active="album" bookCount={photobook.length} onChange={(id) => navigate(`/${id}`)} />
     </>
   );
 }

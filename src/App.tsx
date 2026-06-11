@@ -14,6 +14,7 @@ export default function App() {
   const loadData = useStore((s) => s.loadData);
   const hydrateAuth = useStore((s) => s.hydrateAuth);
   const loading = useStore((s) => s.loading);
+  const selectedAlbumId = useStore((s) => s.selectedAlbumId);
 
   useEffect(() => { loadData(); hydrateAuth(); }, [loadData, hydrateAuth]);
 
@@ -28,7 +29,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<PhoneFrame><AlbumSelect /></PhoneFrame>} />
+        <Route path="/" element={selectedAlbumId ? <Navigate to="/album" replace /> : <PhoneFrame><AlbumSelect /></PhoneFrame>} />
         <Route path="/collection" element={<MobileShell />} />
         <Route path="/album" element={<MobileShell />} />
         <Route path="/dash" element={<MobileShell />} />
