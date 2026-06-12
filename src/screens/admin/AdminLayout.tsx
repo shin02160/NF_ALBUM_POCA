@@ -1,4 +1,4 @@
-// ── 관리자 레이아웃 + 상단바 (handoff 2-2 AdminBar) ────────────────────
+// ── 관리자 레이아웃 + 상단바 — PRD v0.9 ────────────────────────────────
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { T } from '../../theme/tokens';
 import { LOGO } from '../../assets';
@@ -14,7 +14,7 @@ export function AdminLayout() {
 
   const tab = loc.pathname.includes('/pocas') ? 1 : 0;
   const tabs = [
-    { label: '앨범 관리', path: '/admin/albums' },
+    { label: '카테고리 관리', path: '/admin/categories' },
     { label: '포카 관리', path: '/admin/pocas' },
   ];
 

@@ -13,8 +13,8 @@ function AlbumBanner({ onBack }: { onBack?: () => void }) {
   const album = useStore((s) => s.albums.find((a) => a.id === s.selectedAlbumId));
   const navigate = useNavigate();
   if (!album) return null;
-  const bg = album.headerImage
-    ? `linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)), url(${album.headerImage}) center/cover`
+  const bg = album.headerImageUrl
+    ? `linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)), url(${album.headerImageUrl}) center/cover`
     : ALBUM_BANNER_GRADIENT;
   const handleBack = () => onBack ? onBack() : navigate('/collection');
   return (

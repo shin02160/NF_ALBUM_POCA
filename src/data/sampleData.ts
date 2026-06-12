@@ -1,4 +1,4 @@
-// ── 샘플 데이터 (Supabase 미설정 시 사용) — core.jsx 기준 ──────────────
+// ── 샘플 데이터 (Supabase 미설정 시 사용) — PRD v0.9 카테고리 구조 ──────
 import type { Album, PocaCard } from '../types';
 import { MEMBERS, DEFAULT_VERSIONS } from '../theme/tokens';
 import { MEMBER_IMG } from '../assets';
@@ -9,22 +9,27 @@ const SOURCES = ['FNC STORE', '애플뮤직', '기타'];
 export const SAMPLE_ALBUMS: Album[] = [
   {
     id: 'everlasting', name: 'Everlasting', sub: '정규 2집', year: '2025',
+    categoryType: '앨범',
     versions: VERSIONS, sources: ['FNC STORE', '애플뮤직'], count: 12,
-    headerImage: null, bgImage: null, sortOrder: 1, isVisible: true,
+    thumbnailUrl: null, headerImageUrl: null, bgImageUrl: null, bannerImageUrl: null,
+    sortOrder: 1, isVisible: true,
   },
   {
     id: 'woosahap', name: '우사합', sub: '스페셜', year: '2026',
+    categoryType: '팬미팅',
     versions: ['통합 ver.'], sources: ['FNC STORE'], count: 6,
-    headerImage: null, bgImage: null, sortOrder: 2, isVisible: true,
+    thumbnailUrl: null, headerImageUrl: null, bgImageUrl: null, bannerImageUrl: null,
+    sortOrder: 2, isVisible: true,
   },
   {
     id: 'motm', name: 'Man on the Moon', sub: '미니 3집', year: '2021',
+    categoryType: '앨범',
     versions: ['A ver.', 'B ver.'], sources: ['FNC STORE', '기타'], count: 9,
-    headerImage: null, bgImage: null, sortOrder: 3, isVisible: true,
+    thumbnailUrl: null, headerImageUrl: null, bgImageUrl: null, bannerImageUrl: null,
+    sortOrder: 3, isVisible: true,
   },
 ];
 
-// Everlasting 카드 생성 (멤버 × 버전)
 function buildEverlasting(): PocaCard[] {
   const cards: PocaCard[] = [];
   VERSIONS.forEach((ver, vi) => {
@@ -44,7 +49,6 @@ function buildEverlasting(): PocaCard[] {
   return cards;
 }
 
-// 우사합 / motm 도 간단히 생성 → 앨범 전환 데모 가능
 function buildSimple(albumId: string, versions: string[], sources: string[], n: number): PocaCard[] {
   const cards: PocaCard[] = [];
   let order = 0;

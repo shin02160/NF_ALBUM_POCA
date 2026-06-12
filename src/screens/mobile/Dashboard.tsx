@@ -1,12 +1,13 @@
-// ── 대시보드 (PRD 4-4, handoff 1-8) ─────────────────────────────────────
-import { useEffect, useMemo } from 'react';
+// ── 대시보드 (PRD v0.9) ────────────────────────────────────────────────
+import { useEffect, useMemo, useState } from 'react';
 import { T, MC, MEMBERS } from '../../theme/tokens';
 import { useStore } from '../../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { PocaCard } from '../../types';
+import { CATEGORY_TYPES } from '../../types';
 
 const StatCard = ({ label, value, unit, accent, sub }: { label: string; value: number | string; unit?: string; accent?: string; sub?: string }) => (
-  <div style={{ flex: 1, background: T.s, borderRadius: 14, border: `1px solid ${T.b}`, padding: '12px 12px 13px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+  <div style={{ flex: '0 0 auto', minWidth: 100, background: T.s, borderRadius: 14, border: `1px solid ${T.b}`, padding: '12px 12px 13px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
     <p style={{ fontSize: 11, color: T.tm, fontWeight: 500, marginBottom: 5 }}>{label}</p>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
       <span style={{ fontSize: 26, fontWeight: 700, color: accent || T.t, letterSpacing: '-0.04em' }}>{value}</span>
@@ -16,10 +17,11 @@ const StatCard = ({ label, value, unit, accent, sub }: { label: string; value: n
   </div>
 );
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const Section = ({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) => (
   <div style={{ background: T.s, borderRadius: 16, border: `1px solid ${T.b}`, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <span style={{ fontSize: 15, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{title}</span>
+      {action}
     </div>
     {children}
   </div>
@@ -35,8 +37,8 @@ const GroupHeader = ({ label, sub, accent }: { label: string; sub: string; accen
 
 const BarRow = ({ label, n, max, color, secondary, secondaryMax }: { label: string; n: number; max: number; color: string; secondary?: number; secondaryMax?: number }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    <div style={{ width: 78, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+    <div style={{ width: 84, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
       <span style={{ fontSize: 12, fontWeight: 600, color: T.t, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </div>
     <div style={{ flex: 1, height: 10, borderRadius: 100, background: T.bl, overflow: 'hidden', position: 'relative' }}>
@@ -47,11 +49,12 @@ const BarRow = ({ label, n, max, color, secondary, secondaryMax }: { label: stri
   </div>
 );
 
-function countBy<T extends string>(items: PocaCard[], key: (c: PocaCard) => T): Map<T, number> {
-  const m = new Map<T, number>();
-  items.forEach((c) => { const k = key(c); m.set(k, (m.get(k) ?? 0) + 1); });
-  return m;
-}
+const CatDropdown = ({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) => (
+  <select value={value} onChange={(e) => onChange(e.target.value)}
+    style={{ height: 28, padding: '0 8px', borderRadius: 8, border: `1px solid ${T.b}`, background: T.bl, fontSize: 12, color: T.tm, fontWeight: 600, cursor: 'pointer', fontFamily: T.f, outline: 'none' }}>
+    {options.map((o) => <option key={o} value={o}>{o}</option>)}
+  </select>
+);
 
 function countMembers(items: PocaCard[]): Map<string, number> {
   const m = new Map<string, number>();
@@ -63,10 +66,13 @@ function countMembers(items: PocaCard[]): Map<string, number> {
   return m;
 }
 
+const ITEM_COLORS = [T.p, '#8050DF', '#00BF40', '#FF9200', '#20B2AA'];
+const itemColor = (i: number) => ITEM_COLORS[i % ITEM_COLORS.length];
+
 export function Dashboard() {
-  const albumId = useStore((s) => s.selectedAlbumId);
   const allCards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
+  const allAlbums = useStore(useShallow((s) => s.albums));
   const ensureCards = useStore((s) => s.ensureCards);
   const albumIds = useStore(useShallow((s) => s.albums.map((a) => a.id)));
 
@@ -74,73 +80,124 @@ export function Dashboard() {
     albumIds.forEach((id) => ensureCards(id));
   }, [albumIds, ensureCards]);
 
-  const cards = useMemo(
-    () => albumId ? allCards.filter((c) => c.albumId === albumId) : allCards,
-    [allCards, albumId],
-  );
+  // 카테고리별 드롭다운 선택 상태
+  const availableCats = useMemo(() => {
+    const used = new Set(allAlbums.map((a) => a.categoryType));
+    return CATEGORY_TYPES.filter((ct) => used.has(ct));
+  }, [allAlbums]);
 
+  const [totalCatFilter, setTotalCatFilter] = useState('');
+  const [ownedCatFilter, setOwnedCatFilter] = useState('');
+
+  // 초기값 세팅
+  const defaultCat = availableCats[0] ?? '';
+  const activeTotalCat = totalCatFilter || defaultCat;
+  const activeOwnedCat = ownedCatFilter || defaultCat;
+
+  // 앨범별 카드 맵
+  const albumCardMap = useMemo(() => {
+    const m = new Map<string, PocaCard[]>();
+    allCards.forEach((c) => {
+      const arr = m.get(c.albumId) ?? [];
+      arr.push(c);
+      m.set(c.albumId, arr);
+    });
+    return m;
+  }, [allCards]);
+
+  // 카테고리 타입별 총 카드 수
+  const catTotals = useMemo(() => {
+    const m = new Map<string, number>();
+    allAlbums.forEach((al) => {
+      const cnt = (albumCardMap.get(al.id) ?? []).length;
+      m.set(al.categoryType, (m.get(al.categoryType) ?? 0) + cnt);
+    });
+    return m;
+  }, [allAlbums, albumCardMap]);
+
+  // 선택된 카테고리의 상위 5개 아이템 (전체 포카 수 기준)
+  const totalTopItems = useMemo(() => {
+    return allAlbums
+      .filter((al) => al.categoryType === activeTotalCat)
+      .map((al) => ({ name: al.name, n: (albumCardMap.get(al.id) ?? []).length }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 5);
+  }, [allAlbums, albumCardMap, activeTotalCat]);
+
+  const maxTotalItem = Math.max(1, ...totalTopItems.map((x) => x.n));
+
+  // 선택된 카테고리의 상위 5개 아이템 (소장 기준)
+  const ownedTopItems = useMemo(() => {
+    return allAlbums
+      .filter((al) => al.categoryType === activeOwnedCat)
+      .map((al) => {
+        const cards = albumCardMap.get(al.id) ?? [];
+        const total = cards.length;
+        const owned = cards.filter((c) => statusMap[c.id] === '소장').length;
+        return { name: al.name, owned, total };
+      })
+      .sort((a, b) => b.owned - a.owned)
+      .slice(0, 5);
+  }, [allAlbums, albumCardMap, statusMap, activeOwnedCat]);
+
+  // 전체 통계
   const stats = useMemo(() => {
-    const total = cards.length;
-    const owned = cards.filter((c) => statusMap[c.id] === '소장');
-    const wanted = cards.filter((c) => statusMap[c.id] === '구해요').length;
-    const tradable = cards.filter((c) => statusMap[c.id] === '교환 가능').length;
-
-    const versionsAll = [...countBy(cards, (c) => c.version)].map(([name, n]) => ({ name, n }));
-    const sourcesAll = [...countBy(cards, (c) => c.source)].map(([name, n]) => ({ name, n }));
-    const versionsOwned = countBy(owned, (c) => c.version);
-    const sourcesOwned = countBy(owned, (c) => c.source);
+    const total = allCards.length;
+    const owned = allCards.filter((c) => statusMap[c.id] === '소장');
+    const wanted = allCards.filter((c) => statusMap[c.id] === '구해요').length;
+    const tradable = allCards.filter((c) => statusMap[c.id] === '교환 가능').length;
     const ownedByMember = countMembers(owned);
-    const totalByMember = countMembers(cards);
-
+    const totalByMember = countMembers(allCards);
     const orderedMembers = MEMBERS.filter((m) => totalByMember.has(m))
       .concat([...totalByMember.keys()].filter((m) => !MEMBERS.includes(m)));
-    return {
-      total, ownedTotal: owned.length, wanted, tradable,
-      versionsAll, sourcesAll, versionsOwned, sourcesOwned,
-      ownedByMember, totalByMember,
-      members: orderedMembers,
-    };
-  }, [cards, statusMap]);
+    return { total, ownedTotal: owned.length, wanted, tradable, ownedByMember, totalByMember, members: orderedMembers };
+  }, [allCards, statusMap]);
 
   const ownRate = stats.total ? Math.round((stats.ownedTotal / stats.total) * 100) : 0;
   const ownAngle = stats.total ? (stats.ownedTotal / stats.total) * 360 : 0;
   const ownDonut = `conic-gradient(${T.p} 0deg ${ownAngle}deg, ${T.bl} ${ownAngle}deg 360deg)`;
-  const maxVersionAll = Math.max(1, ...stats.versionsAll.map((x) => x.n));
-  const maxSellerAll = Math.max(1, ...stats.sourcesAll.map((x) => x.n));
   const maxMember = Math.max(1, ...[...stats.totalByMember.values()]);
-
-  const versionColor = (i: number) => (i === 0 ? T.p : '#8050DF');
-  const SOURCE_COLORS = [T.p, '#8050DF', '#00BF40', '#FF9200', '#20B2AA'];
-  const sourceColor = (i: number) => SOURCE_COLORS[i % SOURCE_COLORS.length];
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 20px', display: 'flex', flexDirection: 'column', gap: 13 }}>
       <div>
-        <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>{albumId ? '컬렉션 대시보드' : '전체 현황'}</p>
+        <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>전체 현황</p>
       </div>
 
       {/* [일반] */}
       <GroupHeader label="일반" sub="발매된 전체 포카 기준" accent={T.p} />
+
+      {/* 전체 포카 현황 — 가로 스크롤 카드 */}
       <Section title="전체 포카 현황">
-        <div style={{ display: 'flex', gap: 8 }}>
-          <StatCard label="총 포카" value={stats.total} unit="종" accent={T.p} />
-          <StatCard label="버전" value={stats.versionsAll.length} sub={stats.versionsAll.map((v) => v.name).join(' / ')} />
-          <StatCard label="판매처" value={stats.sourcesAll.length} sub={stats.sourcesAll.map((s) => s.name).join(' / ')} />
+        <div style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', margin: '0 -4px', padding: '0 4px' } as React.CSSProperties}>
+          <div style={{ display: 'flex', gap: 8, minWidth: 'max-content' }}>
+            <StatCard label="총 포카" value={stats.total} unit="종" accent={T.p} />
+            {availableCats.map((ct, i) => (
+              <StatCard key={ct} label={ct} value={catTotals.get(ct) ?? 0} unit="종" accent={itemColor(i)} />
+            ))}
+          </div>
         </div>
       </Section>
-      <Section title="버전별 포카 현황">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {stats.versionsAll.map((v, i) => <BarRow key={v.name} label={v.name} n={v.n} max={maxVersionAll} color={versionColor(i)} />)}
-        </div>
-      </Section>
-      <Section title="판매처별 포카 현황">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {stats.sourcesAll.map((s, i) => <BarRow key={s.name} label={s.name} n={s.n} max={maxSellerAll} color={sourceColor(i)} />)}
-        </div>
+
+      {/* 카테고리별 포카 현황 (드롭다운 + 상위 5개 아이템) */}
+      <Section title="카테고리별 포카 현황" action={
+        <CatDropdown value={activeTotalCat} onChange={setTotalCatFilter} options={availableCats} />
+      }>
+        {totalTopItems.length === 0 ? (
+          <p style={{ fontSize: 13, color: T.tl, textAlign: 'center' }}>데이터 없음</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {totalTopItems.map((item, i) => (
+              <BarRow key={item.name} label={item.name} n={item.n} max={maxTotalItem} color={itemColor(i)} />
+            ))}
+          </div>
+        )}
       </Section>
 
       {/* [사용자 현황] */}
       <GroupHeader label="사용자 현황" sub="내 소장 기준" accent="#00BF40" />
+
+      {/* 소장 현황 전체 */}
       <Section title="소장 현황 · 전체">
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div style={{ width: 100, height: 100, borderRadius: '50%', background: ownDonut, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -162,39 +219,36 @@ export function Dashboard() {
           </div>
         </div>
       </Section>
-      <Section title="소장 현황 · 버전별">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {stats.versionsAll.map((v, i) => {
-            const own = stats.versionsOwned.get(v.name) ?? 0;
-            return (
-              <div key={v.name}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: T.t }}>{v.name}</span>
-                  <span style={{ fontSize: 11, color: T.tm }}><strong style={{ color: T.t, fontWeight: 700 }}>{own}</strong> / {v.n}종 · {v.n ? Math.round((own / v.n) * 100) : 0}%</span>
+
+      {/* 소장 현황 · 카테고리별 (드롭다운 + 상위 5개 아이템) */}
+      <Section title="소장 현황 · 카테고리별" action={
+        <CatDropdown value={activeOwnedCat} onChange={setOwnedCatFilter} options={availableCats} />
+      }>
+        {ownedTopItems.length === 0 ? (
+          <p style={{ fontSize: 13, color: T.tl, textAlign: 'center' }}>데이터 없음</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {ownedTopItems.map((item, i) => {
+              const pct = item.total ? Math.round((item.owned / item.total) * 100) : 0;
+              return (
+                <div key={item.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: T.t }}>{item.name}</span>
+                    <span style={{ fontSize: 11, color: T.tm }}>
+                      <strong style={{ color: T.t, fontWeight: 700 }}>{item.owned}</strong> / {item.total}종 · {pct}%
+                    </span>
+                  </div>
+                  <div style={{ height: 10, borderRadius: 100, background: T.bl, overflow: 'hidden' }}>
+                    <div style={{ width: `${item.total ? (item.owned / item.total) * 100 : 0}%`, height: '100%', borderRadius: 100, background: itemColor(i) }} />
+                  </div>
                 </div>
-                <div style={{ height: 10, borderRadius: 100, background: T.bl, overflow: 'hidden' }}>
-                  <div style={{ width: `${v.n ? (own / v.n) * 100 : 0}%`, height: '100%', borderRadius: 100, background: versionColor(i) }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Section>
-      <Section title="소장 현황 · 판매처별">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {stats.sourcesAll.map((s, i) => {
-            const own = stats.sourcesOwned.get(s.name) ?? 0;
-            return <BarRow key={s.name} label={s.name} n={own} max={maxSellerAll} color={sourceColor(i)} secondary={s.n} secondaryMax={maxSellerAll} />;
-          })}
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12, paddingTop: 11, borderTop: `1px solid ${T.b}` }}>
-          {stats.sourcesAll.map((s, i) => <Legend key={s.name} color={sourceColor(i)} label={s.name} />)}
-          <div style={{ width: '100%', display: 'flex', gap: 12 }}>
-            <Legend color={T.tm} label="진한 색: 소장" />
-            <Legend color={T.bl} label="연한 색: 전체 발매" />
+              );
+            })}
           </div>
-        </div>
+        )}
       </Section>
+
+      {/* 소장 현황 · 멤버별 */}
       <Section title="소장 현황 · 멤버별">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           {stats.members.map((m) => {
@@ -210,7 +264,9 @@ export function Dashboard() {
                   <div style={{ position: 'absolute', inset: 0, width: `${(total / maxMember) * 100}%`, borderRadius: 100, background: (MC[m] || T.p) + '22' }} />
                   <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${(own / maxMember) * 100}%`, borderRadius: 100, background: MC[m] || T.p }} />
                 </div>
-                <span style={{ width: 48, textAlign: 'right', fontSize: 11, color: T.tm, flexShrink: 0 }}><strong style={{ color: T.t, fontWeight: 700, fontSize: 12 }}>{own}</strong>/{total}종</span>
+                <span style={{ width: 48, textAlign: 'right', fontSize: 11, color: T.tm, flexShrink: 0 }}>
+                  <strong style={{ color: T.t, fontWeight: 700, fontSize: 12 }}>{own}</strong>/{total}종
+                </span>
               </div>
             );
           })}
@@ -224,12 +280,5 @@ const Mini = ({ label, value, color, subColor }: { label: string; value: number;
   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
     <span style={{ fontSize: 11, color: subColor }}>{label}</span>
     <span style={{ fontSize: 16, fontWeight: 700, color }}>{value}<span style={{ fontSize: 11, color: T.tm, fontWeight: 600 }}>종</span></span>
-  </div>
-);
-
-const Legend = ({ color, label }: { color: string; label: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-    <span style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-    <span style={{ fontSize: 11, color: T.tm }}>{label}</span>
   </div>
 );

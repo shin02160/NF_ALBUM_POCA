@@ -1,14 +1,14 @@
-// ── 하단 탭바: 모아보기 / 앨범별 / 대시보드 / 포토북 — PRD v0.8 ─────────
+// ── 하단 탭바: 카테고리 / 모아보기 / 대시보드 / 포토북 — PRD v0.9 ──────
 import { T } from '../theme/tokens';
 import { Icon } from './icons';
 
-export type TabId = 'collection' | 'album' | 'dash' | 'book';
+export type TabId = 'collection' | 'category' | 'dash' | 'book';
 
 const tabs: { id: TabId; label: string; Ico: (p: { c?: string; sz?: number }) => React.ReactElement }[] = [
-  { id: 'album',      label: '앨범',     Ico: Icon.list },
-  { id: 'collection', label: '모아보기', Ico: Icon.grid },
-  { id: 'dash',       label: '대시보드', Ico: Icon.chart },
-  { id: 'book',       label: '포토북',   Ico: Icon.book },
+  { id: 'category',    label: '카테고리', Ico: Icon.home },
+  { id: 'collection',  label: '모아보기', Ico: Icon.grid },
+  { id: 'dash',        label: '대시보드', Ico: Icon.chart },
+  { id: 'book',        label: '포토북',   Ico: Icon.book },
 ];
 
 export function BottomTab({ active, bookCount = 0, onChange }: { active: TabId; bookCount?: number; onChange: (id: TabId) => void }) {

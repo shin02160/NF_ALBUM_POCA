@@ -82,6 +82,7 @@ interface State {
   addToPhotobook: (cardId: string) => void;
   removeFromPhotobook: (cardId: string) => void;
   reorderPhotobook: (ids: string[]) => void;
+  clearPhotobook: () => void;
 
   ensureCards: (albumId: string) => Promise<void>;
 
@@ -242,6 +243,11 @@ export const useStore = create<State>((set, get) => {
   reorderPhotobook: (ids) => {
     savePhotobook(ids);
     set({ photobook: ids });
+    scheduleSyncToDb();
+  },
+  clearPhotobook: () => {
+    savePhotobook([]);
+    set({ photobook: [] });
     scheduleSyncToDb();
   },
 

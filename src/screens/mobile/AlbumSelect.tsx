@@ -32,9 +32,9 @@ export function AlbumSelect({ onSelect }: { onSelect?: () => void }) {
             onClick={async () => { await selectAlbum(al.id); if (onSelect) { onSelect(); } else { navigate('/album'); } }}
             style={{ background: T.s, borderRadius: 16, border: `1px solid ${i === 0 ? 'rgba(51,102,255,0.35)' : T.b}`, padding: 14, display: 'flex', gap: 14, alignItems: 'center', boxShadow: i === 0 ? '0 4px 20px rgba(51,102,255,0.10)' : '0 2px 10px rgba(0,0,0,0.04)', cursor: 'pointer', textAlign: 'left', fontFamily: T.f }}
           >
-            <div style={{ width: 64, height: 64, borderRadius: 12, background: al.coverImage ? undefined : `linear-gradient(135deg, ${MC[MEMBERS[i % MEMBERS.length]]}22, ${MC[MEMBERS[(i + 1) % MEMBERS.length]] || T.p}28)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${T.b}`, overflow: 'hidden' }}>
-              {al.coverImage
-                ? <img src={al.coverImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ width: 64, height: 64, borderRadius: 12, background: al.thumbnailUrl ? undefined : `linear-gradient(135deg, ${MC[MEMBERS[i % MEMBERS.length]]}22, ${MC[MEMBERS[(i + 1) % MEMBERS.length]] || T.p}28)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${T.b}`, overflow: 'hidden' }}>
+              {al.thumbnailUrl
+                ? <img src={al.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <img src={LOGO} alt="" style={{ width: '62%', opacity: 0.55 }} />}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>

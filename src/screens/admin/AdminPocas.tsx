@@ -1,4 +1,4 @@
-// ── 포카 관리 (테이블 CRUD + 드래그 정렬) — PRD 4-6, handoff 2-3/2-4 ────
+// ── 포카 관리 (테이블 CRUD + 드래그 정렬) — PRD v0.9 ────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import type { Album } from '../../types';
 import {
@@ -12,12 +12,13 @@ import { Pill, MemberBadge } from '../../components/atoms';
 import { Icon } from '../../components/icons';
 import { PocaCard } from '../../components/PocaCard';
 import { useStore } from '../../store/useStore';
+import { SaveAlert, useSaveAlert } from '../../components/SaveAlert';
 import type { PocaCard as Card } from '../../types';
 import { AdminPocaEditModal } from './AdminPocaEditModal';
 
-const GRID = '50px 70px 1.4fr 1fr 1fr 1fr 90px';
+const GRID = '50px 70px 90px 1.4fr 1fr 1fr 1fr 90px';
 
-function Row({ card, onEdit, onDelete }: { card: Card; onEdit: () => void; onDelete: () => void }) {
+function Row({ card, categoryLabel, onEdit, onDelete }: { card: Card; categoryLabel: string; onEdit: () => void; onDelete: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform), transition,
@@ -28,6 +29,7 @@ function Row({ card, onEdit, onDelete }: { card: Card; onEdit: () => void; onDel
     <div ref={setNodeRef} style={style}>
       <div {...attributes} {...listeners} style={{ cursor: 'grab', touchAction: 'none' }}><Icon.drag /></div>
       <div style={{ width: 36 }}><PocaCard member={card.member} img={card.imageUrl} width={36} radius={5} /></div>
+      <span style={{ fontSize: 12, color: T.tl }}>{categoryLabel}</span>
       <span style={{ fontSize: 14, fontWeight: 600, color: T.t }}>{card.name}</span>
       <div><MemberBadge member={card.member} /></div>
       <div><Pill label={card.version} tone="blue" /></div>
@@ -46,21 +48,26 @@ export function AdminPocas() {
   const deleteCard = useStore((s) => s.deleteCard);
   const reorderCards = useStore((s) => s.reorderCards);
   const ensureCards = useStore((s) => s.ensureCards);
+  const { alertState, triggerSave } = useSaveAlert();
 
   const [albumId, setAlbumId] = useState('');
 
   useEffect(() => {
-    if (albumId) {
-      ensureCards(albumId);
-    } else {
-      albums.forEach((a) => ensureCards(a.id));
-    }
+    if (albumId) ensureCards(albumId);
+    else albums.forEach((a) => ensureCards(a.id));
   }, [albumId, albums, ensureCards]);
+
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<{ card: Card | null; album: Album } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const album = albums.find((a) => a.id === albumId);
+
+  const albumCategoryMap = useMemo(() => {
+    const m = new Map<string, string>();
+    albums.forEach((a) => m.set(a.id, a.categoryType ?? '앨범'));
+    return m;
+  }, [albums]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -75,7 +82,7 @@ export function AdminPocas() {
     if (over && active.id !== over.id) {
       const ids = rows.map((r) => r.id);
       const next = arrayMove(ids, ids.indexOf(active.id as string), ids.indexOf(over.id as string));
-      reorderCards(albumId, next);
+      triggerSave(async () => reorderCards(albumId, next));
     }
   }
 
@@ -87,7 +94,7 @@ export function AdminPocas() {
           <p style={{ fontSize: 22, fontWeight: 700, color: T.t, letterSpacing: '-0.03em' }}>포카 관리</p>
           <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} style={{ height: 30, padding: '0 12px', borderRadius: 100, background: T.bl, border: 'none', fontSize: 12, color: T.tm, fontWeight: 600, cursor: 'pointer', fontFamily: T.f }}>
             <option value="">전체</option>
-            {albums.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {albums.map((a) => <option key={a.id} value={a.id}>[{a.categoryType}] {a.name}</option>)}
           </select>
           <span style={{ fontSize: 13, color: T.tm }}>총 {rows.length}종</span>
         </div>
@@ -102,15 +109,16 @@ export function AdminPocas() {
       {/* Table */}
       <div style={{ flex: 1, background: T.s, borderRadius: 16, border: `1px solid ${T.b}`, overflow: 'auto', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: GRID, alignItems: 'center', height: 46, padding: '0 20px', borderBottom: `1px solid ${T.b}`, background: T.bg, position: 'sticky', top: 0, zIndex: 1 }}>
-          {['', '썸네일', '포카명', '멤버', '버전', '구매처', '관리'].map((h, i) => <span key={i} style={{ fontSize: 12, fontWeight: 700, color: T.tm }}>{h}</span>)}
+          {['', '썸네일', '카테고리', '포카명', '멤버', '버전', '구매처', '관리'].map((h, i) => <span key={i} style={{ fontSize: 12, fontWeight: 700, color: T.tm }}>{h}</span>)}
         </div>
         {rows.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: T.tl, fontSize: 13 }}>포카가 없습니다. ‘포카 추가’로 등록하세요.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: T.tl, fontSize: 13 }}>포카가 없습니다. '포카 추가'로 등록하세요.</div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} modifiers={[restrictToVerticalAxis]}>
             <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
               {rows.map((card) => (
                 <Row key={card.id} card={card}
+                  categoryLabel={albumCategoryMap.get(card.albumId) ?? ''}
                   onEdit={() => {
                     const targetAlbum = album ?? albums.find((a) => a.id === card.albumId);
                     if (targetAlbum) setEditing({ card, album: targetAlbum });
@@ -123,8 +131,9 @@ export function AdminPocas() {
       </div>
 
       {editing && (
-        <AdminPocaEditModal album={editing.album} card={editing.card} nextOrder={rows.length} onClose={() => setEditing(null)} />
+        <AdminPocaEditModal album={editing.album} card={editing.card} nextOrder={rows.length} onClose={() => setEditing(null)} onSaved={() => triggerSave(async () => {})} />
       )}
+      <SaveAlert state={alertState} />
     </div>
   );
 }

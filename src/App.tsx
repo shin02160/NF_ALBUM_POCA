@@ -5,7 +5,7 @@ import { T } from './theme/tokens';
 import { MobileShell } from './screens/mobile/MobileShell';
 import { AdminLogin } from './screens/admin/AdminLogin';
 import { AdminLayout } from './screens/admin/AdminLayout';
-import { AdminAlbums } from './screens/admin/AdminAlbums';
+import { AdminCategories } from './screens/admin/AdminCategories';
 import { AdminPocas } from './screens/admin/AdminPocas';
 
 export default function App() {
@@ -26,18 +26,21 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/album" replace />} />
+        <Route path="/" element={<Navigate to="/category" replace />} />
+        <Route path="/category" element={<MobileShell />} />
         <Route path="/collection" element={<MobileShell />} />
-        <Route path="/album" element={<MobileShell />} />
         <Route path="/dash" element={<MobileShell />} />
         <Route path="/book" element={<MobileShell />} />
         {/* 구버전 경로 호환 */}
-        <Route path="/list" element={<Navigate to="/album" replace />} />
+        <Route path="/album" element={<Navigate to="/category" replace />} />
+        <Route path="/list" element={<Navigate to="/category" replace />} />
 
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
-          <Route path="albums" element={<AdminAlbums />} />
+          <Route path="categories" element={<AdminCategories />} />
           <Route path="pocas" element={<AdminPocas />} />
+          {/* 구버전 경로 호환 */}
+          <Route path="albums" element={<Navigate to="/admin/categories" replace />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

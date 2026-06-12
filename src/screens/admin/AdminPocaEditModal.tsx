@@ -1,4 +1,4 @@
-// ── 포카 추가/편집 모달 — PRD 4-6, handoff 2-4 ─────────────────────────
+// ── 포카 추가/편집 모달 — PRD v0.9 ──────────────────────────────────────
 import { useRef, useState } from 'react';
 import { T, MC, MEMBERS } from '../../theme/tokens';
 import { Icon } from '../../components/icons';
@@ -9,7 +9,9 @@ import type { Album, PocaCard } from '../../types';
 const fieldStyle: React.CSSProperties = { height: 42, borderRadius: 10, border: `1px solid ${T.b}`, background: T.s, padding: '0 14px', fontSize: 14, color: T.t, width: '100%', fontFamily: T.f, outline: 'none' };
 const Label = ({ children }: { children: React.ReactNode }) => <p style={{ fontSize: 12, fontWeight: 600, color: T.tm, marginBottom: 7 }}>{children}</p>;
 
-export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album: Album; card: PocaCard | null; nextOrder: number; onClose: () => void }) {
+export function AdminPocaEditModal({ album, card, nextOrder, onClose, onSaved }: {
+  album: Album; card: PocaCard | null; nextOrder: number; onClose: () => void; onSaved?: () => void;
+}) {
   const saveCard = useStore((s) => s.saveCard);
   const ref = useRef<HTMLInputElement>(null);
 
@@ -47,6 +49,7 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
       name: finalName, member: members.join(','), version, source, imageUrl,
       sortOrder: card?.sortOrder ?? nextOrder,
     });
+    onSaved?.();
     onClose();
   };
 
@@ -55,7 +58,10 @@ export function AdminPocaEditModal({ album, card, nextOrder, onClose }: { album:
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(15,15,18,0.5)' }} className="sheet-overlay" />
       <div className="modal-panel" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 640, maxWidth: '94vw', background: T.s, borderRadius: 22, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.3)', fontFamily: T.f }}>
         <div style={{ padding: '22px 28px', borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: T.t }}>{card ? '포카 편집' : '포카 추가'}</span>
+          <div>
+            <span style={{ fontSize: 18, fontWeight: 700, color: T.t }}>{card ? '포카 편집' : '포카 추가'}</span>
+            <span style={{ marginLeft: 10, fontSize: 12, color: T.tl, fontWeight: 500 }}>{album.categoryType} · {album.name}</span>
+          </div>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, background: T.bl, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}><Icon.close c={T.tm} sz={12} /></button>
         </div>
         <div style={{ padding: 28, display: 'flex', gap: 24 }}>

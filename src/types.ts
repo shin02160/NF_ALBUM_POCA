@@ -1,22 +1,28 @@
 import type { StatusKey } from './theme/tokens';
 
-// PRD 3-2 album_meta + handoff Album 모델
+// PRD v0.9 카테고리 타입 (8종)
+export type CategoryType = '앨범' | '콘서트' | '팬미팅' | '팬클럽' | '시즌그리팅' | '포토북' | '잡지' | 'MD' | '기타';
+export const CATEGORY_TYPES: CategoryType[] = ['앨범', '콘서트', '팬미팅', '팬클럽', '시즌그리팅', '포토북', '잡지', 'MD', '기타'];
+
+// PRD 3-2 album_meta + v0.9 카테고리 필드 추가
 export interface Album {
   id: string;
   name: string;
-  sub: string; // 예: "정규 2집"
+  sub: string;
   year: string;
+  categoryType: CategoryType;   // NEW v0.9
   versions: string[];
   sources: string[];
-  count: number; // 총 포카 종수 (파생값)
-  coverImage?: string | null;
-  headerImage?: string | null;
-  bgImage?: string | null;
+  count: number;
+  thumbnailUrl?: string | null;   // NEW v0.9 (64×64 썸네일)
+  headerImageUrl?: string | null; // NEW v0.9 (renamed from headerImage)
+  bgImageUrl?: string | null;     // NEW v0.9 (renamed from bgImage)
+  bannerImageUrl?: string | null; // NEW v0.9
   sortOrder: number;
   isVisible?: boolean;
 }
 
-// PRD 3-2 album_poca_cards + handoff PocaCard 모델
+// PRD 3-2 album_poca_cards
 export interface PocaCard {
   id: string;
   albumId: string;

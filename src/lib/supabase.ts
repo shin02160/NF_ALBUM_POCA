@@ -15,9 +15,9 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 // DB row ↔ 앱 모델 매핑
 interface AlbumRow {
   album_id: string; album_name: string; versions: string[];
-  cover_image?: string | null; header_image: string | null; bg_image: string | null;
+  thumbnail_url?: string | null; header_image_url: string | null; bg_image_url: string | null; banner_image_url?: string | null;
   sources: string[]; sort_order: number;
-  sub?: string | null; year?: string | null;
+  sub?: string | null; year?: string | null; category_type?: string | null;
   is_visible?: boolean | null;
 }
 interface CardRow {
@@ -27,8 +27,12 @@ interface CardRow {
 
 const toAlbum = (r: AlbumRow, count: number): Album => ({
   id: r.album_id, name: r.album_name, sub: r.sub ?? '', year: r.year ?? '',
+  categoryType: (r.category_type as Album['categoryType']) ?? '앨범',
   versions: r.versions ?? [], sources: r.sources ?? [], count,
-  coverImage: r.cover_image ?? null, headerImage: r.header_image, bgImage: r.bg_image,
+  thumbnailUrl: r.thumbnail_url ?? null,
+  headerImageUrl: r.header_image_url ?? null,
+  bgImageUrl: r.bg_image_url ?? null,
+  bannerImageUrl: r.banner_image_url ?? null,
   sortOrder: r.sort_order, isVisible: r.is_visible ?? true,
 });
 const toCard = (r: CardRow): PocaCard => ({
@@ -81,8 +85,12 @@ function requireClient(): SupabaseClient {
 export async function upsertAlbumDb(a: Album): Promise<void> {
   const { error } = await requireClient().from('album_meta').upsert({
     album_id: a.id, album_name: a.name, sub: a.sub || null, year: a.year || null,
-    versions: a.versions, cover_image: a.coverImage ?? null,
-    header_image: a.headerImage ?? null, bg_image: a.bgImage ?? null,
+    category_type: a.categoryType ?? '앨범',
+    versions: a.versions,
+    thumbnail_url: a.thumbnailUrl ?? null,
+    header_image_url: a.headerImageUrl ?? null,
+    bg_image_url: a.bgImageUrl ?? null,
+    banner_image_url: a.bannerImageUrl ?? null,
     sources: a.sources, sort_order: a.sortOrder, is_visible: a.isVisible ?? true,
   });
   if (error) throw error;

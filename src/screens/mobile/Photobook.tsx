@@ -14,6 +14,7 @@ export function Photobook() {
   const statusMap = useStore((s) => s.statusMap);
   const allAlbums = useStore(useShallow((s) => s.albums));
   const remove = useStore((s) => s.removeFromPhotobook);
+  const clearPhotobook = useStore((s) => s.clearPhotobook);
   const ensureCards = useStore((s) => s.ensureCards);
   const albumIds = useStore(useShallow((s) => s.albums.map((a) => a.id)));
 
@@ -154,8 +155,8 @@ export function Photobook() {
           <div ref={exportRef} style={{ background: T.s, borderRadius: 16, border: `1px solid ${T.b}`, overflow: 'hidden', boxShadow: '0 6px 28px rgba(0,0,0,0.06)' }}>
             {/* 헤더 */}
             <div style={{
-              background: singleAlbum?.headerImage
-                ? `linear-gradient(120deg,rgba(0,0,0,0.5),rgba(0,0,0,0.2)),url(${singleAlbum.headerImage}) center/cover`
+              background: singleAlbum?.headerImageUrl
+                ? `linear-gradient(120deg,rgba(0,0,0,0.5),rgba(0,0,0,0.2)),url(${singleAlbum.headerImageUrl}) center/cover`
                 : ALBUM_BANNER_GRADIENT,
               padding: '10px 14px 12px',
               display: 'flex',
@@ -178,17 +179,14 @@ export function Photobook() {
               ))}
             </div>
             {/* 버전별 섹션 */}
-            {exportSections.map(({ albumId, albumName, version, sourceLabel, rows }) => (
+            {exportSections.map(({ albumId, albumName, version, sourceLabel, rows }) => {
+              const hasVer = Boolean(version && version !== '-');
+              const expLabel = hasVer ? version : sourceLabel;
+              return (
               <div key={`${albumId}-${version}`}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px 5px', borderBottom: `1px solid ${T.b}`, background: T.bg }}>
                   {hasMultipleAlbums && <span style={{ fontSize: 11, fontWeight: 600, color: T.p }}>{albumName} ·</span>}
-                  <span style={{ fontSize: 11, fontWeight: 700, color: T.t }}>{version}</span>
-                  {sourceLabel && (
-                    <>
-                      <span style={{ width: 1, height: 10, background: T.b }} />
-                      <span style={{ fontSize: 10, color: T.tm }}>{sourceLabel}</span>
-                    </>
-                  )}
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.t }}>{expLabel}</span>
                 </div>
                 {rows.map((card) => (
                   <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderBottom: `1px solid ${T.bl}` }}>
@@ -202,7 +200,7 @@ export function Photobook() {
                   </div>
                 ))}
               </div>
-            ))}
+            );})}
           </div>
           <p style={{ fontSize: 11, color: T.tl, textAlign: 'center' }}>{fileName}</p>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -219,10 +217,20 @@ export function Photobook() {
     <>
       {/* 헤더 */}
       <div style={{ height: 54, background: T.s, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', flexShrink: 0 }}>
-        <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', color: T.t }}>포토북</span>
-        <div style={{ height: 22, padding: '0 9px', borderRadius: 100, background: T.pb, display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: T.p, fontWeight: 700 }}>{bookCards.length}장</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', color: T.t }}>포토북</span>
+          <div style={{ height: 22, padding: '0 9px', borderRadius: 100, background: T.pb, display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: T.p, fontWeight: 700 }}>{bookCards.length}장</span>
+          </div>
         </div>
+        {!empty && (
+          <button
+            onClick={() => { if (confirm('포토북을 모두 비울까요?')) clearPhotobook(); }}
+            style={{ height: 30, padding: '0 12px', borderRadius: 8, border: `1px solid ${T.b}`, background: T.s, display: 'flex', alignItems: 'center', cursor: 'pointer', fontFamily: T.f }}
+          >
+            <span style={{ fontSize: 12, color: T.tm, fontWeight: 600 }}>비우기</span>
+          </button>
+        )}
       </div>
       {/* 안내 배너 */}
       <div style={{ background: T.pb, padding: '9px 16px', flexShrink: 0 }}>
@@ -253,17 +261,14 @@ export function Photobook() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: T.p }}>{album.name}</span>
                 </div>
               )}
-              {vGroups.map(({ version, sourceLabel, memberRows }) => (
+              {vGroups.map(({ version, sourceLabel, memberRows }) => {
+                const hasVersion = Boolean(version && version !== '-');
+                const headerLabel = hasVersion ? version : sourceLabel;
+                return (
                 <div key={version}>
-                  {/* 섹션 헤더 */}
+                  {/* 섹션 헤더: 버전 있으면 버전만, 없으면 판매처 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 8px', background: T.bg, borderBottom: `1px solid ${T.b}` }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{version}</span>
-                    {sourceLabel && (
-                      <>
-                        <span style={{ width: 1, height: 12, background: T.b }} />
-                        <span style={{ fontSize: 12, color: T.tm, fontWeight: 500 }}>{sourceLabel}</span>
-                      </>
-                    )}
+                    <span style={{ fontSize: 13, fontWeight: 700, color: T.t, letterSpacing: '-0.02em' }}>{headerLabel}</span>
                   </div>
                   {/* 멤버행 */}
                   {memberRows.map(({ member, card }) => (
@@ -284,7 +289,7 @@ export function Photobook() {
                     </div>
                   ))}
                 </div>
-              ))}
+              );})}
             </div>
           ))
         )}
