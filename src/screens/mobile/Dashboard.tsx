@@ -147,7 +147,7 @@ export function Dashboard() {
     const tradable = allCards.filter((c) => statusMap[c.id] === '교환 가능').length;
     const ownedByMember = countMembers(owned);
     const totalByMember = countMembers(allCards);
-    const orderedMembers = MEMBERS.filter((m) => totalByMember.has(m));
+    const orderedMembers = MEMBERS;
     return { total, ownedTotal: owned.length, wanted, tradable, ownedByMember, totalByMember, members: orderedMembers };
   }, [allCards, statusMap]);
 
