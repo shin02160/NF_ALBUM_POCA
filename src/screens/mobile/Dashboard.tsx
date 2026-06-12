@@ -59,9 +59,8 @@ const CatDropdown = ({ value, onChange, options }: { value: string; onChange: (v
 function countMembers(items: PocaCard[]): Map<string, number> {
   const m = new Map<string, number>();
   items.forEach((c) => {
-    c.member.split(',').map((s) => s.trim()).filter(Boolean).forEach((mbr) => {
-      m.set(mbr, (m.get(mbr) ?? 0) + 1);
-    });
+    const key = c.member.includes(',') ? '유닛' : c.member.trim();
+    m.set(key, (m.get(key) ?? 0) + 1);
   });
   return m;
 }
@@ -148,8 +147,7 @@ export function Dashboard() {
     const tradable = allCards.filter((c) => statusMap[c.id] === '교환 가능').length;
     const ownedByMember = countMembers(owned);
     const totalByMember = countMembers(allCards);
-    const orderedMembers = MEMBERS.filter((m) => totalByMember.has(m))
-      .concat([...totalByMember.keys()].filter((m) => !MEMBERS.includes(m)));
+    const orderedMembers = MEMBERS.filter((m) => totalByMember.has(m));
     return { total, ownedTotal: owned.length, wanted, tradable, ownedByMember, totalByMember, members: orderedMembers };
   }, [allCards, statusMap]);
 
