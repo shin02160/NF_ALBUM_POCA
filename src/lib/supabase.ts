@@ -15,7 +15,7 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 // DB row ↔ 앱 모델 매핑
 interface AlbumRow {
   album_id: string; album_name: string; versions: string[];
-  header_image: string | null; bg_image: string | null;
+  cover_image?: string | null; header_image: string | null; bg_image: string | null;
   sources: string[]; sort_order: number;
   sub?: string | null; year?: string | null;
   is_visible?: boolean | null;
@@ -28,8 +28,8 @@ interface CardRow {
 const toAlbum = (r: AlbumRow, count: number): Album => ({
   id: r.album_id, name: r.album_name, sub: r.sub ?? '', year: r.year ?? '',
   versions: r.versions ?? [], sources: r.sources ?? [], count,
-  headerImage: r.header_image, bgImage: r.bg_image, sortOrder: r.sort_order,
-  isVisible: r.is_visible ?? true,
+  coverImage: r.cover_image ?? null, headerImage: r.header_image, bgImage: r.bg_image,
+  sortOrder: r.sort_order, isVisible: r.is_visible ?? true,
 });
 const toCard = (r: CardRow): PocaCard => ({
   id: r.id, albumId: r.album_id, version: r.version, name: r.name,
@@ -81,9 +81,9 @@ function requireClient(): SupabaseClient {
 export async function upsertAlbumDb(a: Album): Promise<void> {
   const { error } = await requireClient().from('album_meta').upsert({
     album_id: a.id, album_name: a.name, sub: a.sub || null, year: a.year || null,
-    versions: a.versions, header_image: a.headerImage ?? null,
-    bg_image: a.bgImage ?? null, sources: a.sources, sort_order: a.sortOrder,
-    is_visible: a.isVisible ?? true,
+    versions: a.versions, cover_image: a.coverImage ?? null,
+    header_image: a.headerImage ?? null, bg_image: a.bgImage ?? null,
+    sources: a.sources, sort_order: a.sortOrder, is_visible: a.isVisible ?? true,
   });
   if (error) throw error;
 }

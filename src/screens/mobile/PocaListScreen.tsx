@@ -16,10 +16,11 @@ function AlbumBanner({ onBack }: { onBack?: () => void }) {
   const bg = album.headerImage
     ? `linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)), url(${album.headerImage}) center/cover`
     : ALBUM_BANNER_GRADIENT;
+  const handleBack = () => onBack ? onBack() : navigate('/collection');
   return (
-    <div style={{ height: 56, background: bg, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0 }}>
+    <div onClick={handleBack} style={{ height: 56, background: bg, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0, cursor: 'pointer' }}>
       <button
-        onClick={() => onBack ? onBack() : navigate('/collection')}
+        onClick={(e) => { e.stopPropagation(); handleBack(); }}
         style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         <Icon.back c="rgba(255,255,255,0.9)" />
@@ -81,10 +82,11 @@ export function PocaListScreen({ onBack }: { onBack?: () => void }) {
 
       // 2. 동적 유닛행 (다중 멤버 조합)
       const unitStrings = [...new Set(vCards.filter((c) => c.member.includes(',')).map((c) => c.member))];
+      const useUnitLabel = membersToShow.includes('유닛') && membersToShow.length > 1;
       const dynamicUnitRows = unitStrings
         .map((unit) => ({
           member: unit,
-          displayName: unit.split(',').map((s) => s.trim()).join(' · '),
+          displayName: useUnitLabel ? '유닛' : unit.split(',').map((s) => s.trim()).join(' · '),
           cards: vCards.filter((c) => c.member === unit),
         }))
         .filter((r) => {

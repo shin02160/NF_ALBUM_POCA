@@ -9,6 +9,7 @@ export interface Album {
   versions: string[];
   sources: string[];
   count: number; // 총 포카 종수 (파생값)
+  coverImage?: string | null;
   headerImage?: string | null;
   bgImage?: string | null;
   sortOrder: number;

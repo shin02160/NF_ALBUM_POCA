@@ -18,15 +18,23 @@ export function StatusSheet() {
 
   if (!card) return null;
 
+  const memberDisplay = card.member.split(',').map((s) => s.trim()).join(' · ');
+
   return (
     <BottomSheet onClose={close} dim={0.55}>
+      {/* 닫기 버튼 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 16px 0', marginTop: -6 }}>
+        <button onClick={close} style={{ width: 32, height: 32, borderRadius: '50%', background: T.bl, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon.close c={T.tm} sz={12} />
+        </button>
+      </div>
       {/* Card preview */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0 8px', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 0 8px', gap: 12 }}>
         <div style={{ width: 132, filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.18))' }}>
           <PocaCard member={card.member} img={card.imageUrl} status={status} radius={12} />
         </div>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: T.t, marginBottom: 4 }}>{card.member}</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: T.t, marginBottom: 4 }}>{memberDisplay}</p>
           <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
             <Pill label={card.version} tone="blue" />
             <Pill label={card.source} />

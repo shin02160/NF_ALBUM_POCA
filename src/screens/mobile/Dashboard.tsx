@@ -1,17 +1,18 @@
 // ── 대시보드 (PRD 4-4, handoff 1-8) ─────────────────────────────────────
 import { useEffect, useMemo } from 'react';
-import { T, MC } from '../../theme/tokens';
+import { T, MC, MEMBERS } from '../../theme/tokens';
 import { useStore } from '../../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { PocaCard } from '../../types';
 
-const StatCard = ({ label, value, unit, accent }: { label: string; value: number | string; unit?: string; accent?: string }) => (
+const StatCard = ({ label, value, unit, accent, sub }: { label: string; value: number | string; unit?: string; accent?: string; sub?: string }) => (
   <div style={{ flex: 1, background: T.s, borderRadius: 14, border: `1px solid ${T.b}`, padding: '12px 12px 13px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
     <p style={{ fontSize: 11, color: T.tm, fontWeight: 500, marginBottom: 5 }}>{label}</p>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
       <span style={{ fontSize: 26, fontWeight: 700, color: accent || T.t, letterSpacing: '-0.04em' }}>{value}</span>
       {unit && <span style={{ fontSize: 12, color: T.tm, fontWeight: 600 }}>{unit}</span>}
     </div>
+    {sub && <p style={{ fontSize: 10, color: T.tl, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</p>}
   </div>
 );
 
@@ -91,11 +92,13 @@ export function Dashboard() {
     const ownedByMember = countMembers(owned);
     const totalByMember = countMembers(cards);
 
+    const orderedMembers = MEMBERS.filter((m) => totalByMember.has(m))
+      .concat([...totalByMember.keys()].filter((m) => !MEMBERS.includes(m)));
     return {
       total, ownedTotal: owned.length, wanted, tradable,
       versionsAll, sourcesAll, versionsOwned, sourcesOwned,
       ownedByMember, totalByMember,
-      members: [...totalByMember.keys()],
+      members: orderedMembers,
     };
   }, [cards, statusMap]);
 
@@ -121,8 +124,8 @@ export function Dashboard() {
       <Section title="전체 포카 현황">
         <div style={{ display: 'flex', gap: 8 }}>
           <StatCard label="총 포카" value={stats.total} unit="종" accent={T.p} />
-          <StatCard label="버전" value={stats.versionsAll.length} />
-          <StatCard label="판매처" value={stats.sourcesAll.length} />
+          <StatCard label="버전" value={stats.versionsAll.length} sub={stats.versionsAll.map((v) => v.name).join(' / ')} />
+          <StatCard label="판매처" value={stats.sourcesAll.length} sub={stats.sourcesAll.map((s) => s.name).join(' / ')} />
         </div>
       </Section>
       <Section title="버전별 포카 현황">

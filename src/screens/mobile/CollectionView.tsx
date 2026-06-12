@@ -1,6 +1,7 @@
 // ── 모아보기: 전체 / 앨범별 필터 ─────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
-import { T, MC, MEMBERS } from '../../theme/tokens';
+import { useNavigate } from 'react-router-dom';
+import { T, MC, MEMBERS, STATUS, STATUS_ORDER } from '../../theme/tokens';
 import { LOGO } from '../../assets';
 import { Icon } from '../../components/icons';
 import { PocaCard } from '../../components/PocaCard';
@@ -39,10 +40,11 @@ function buildMemberRows(sCards: Card[], membersToShow: string[], showEmpty: boo
 
   // 2. 동적 유닛행 (다중 멤버 조합, 쉼표 구분)
   const unitStrings = [...new Set(sCards.filter((c) => c.member.includes(',')).map((c) => c.member))];
+  const useUnitLabel = membersToShow.includes('유닛') && membersToShow.length > 1;
   const dynamicUnitRows: MemberRow[] = unitStrings
     .map((unit) => ({
       member: unit,
-      displayName: unit.split(',').map((s) => s.trim()).join(' · '),
+      displayName: useUnitLabel ? '유닛' : unit.split(',').map((s) => s.trim()).join(' · '),
       cards: sCards.filter((c) => c.member === unit),
     }))
     .filter((r) => r.cards.length > 0);
@@ -60,6 +62,7 @@ function buildMemberRows(sCards: Card[], membersToShow: string[], showEmpty: boo
 }
 
 export function CollectionView() {
+  const navigate = useNavigate();
   const albums = useStore(useShallow((s) => s.albums.filter((a) => a.isVisible !== false)));
   const cards = useStore((s) => s.cards);
   const statusMap = useStore((s) => s.statusMap);
@@ -191,7 +194,7 @@ export function CollectionView() {
     <>
       {/* 헤더 */}
       <div style={{ height: 54, background: T.s, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
-        <img src={LOGO} alt="NFlying" style={{ height: 46, width: 'auto' }} />
+        <img src={LOGO} alt="NFlying" onClick={() => navigate('/album')} style={{ height: 46, width: 'auto', cursor: 'pointer' }} />
       </div>
 
       {/* 앨범 chip 선택 */}
@@ -250,6 +253,16 @@ export function CollectionView() {
           })}
         </div>
       )}
+
+      {/* 상태 범례 */}
+      <div style={{ height: 34, background: T.bg, borderBottom: `1px solid ${T.b}`, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', flexShrink: 0 }}>
+        {STATUS_ORDER.map((s) => (
+          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 3, border: `2px solid ${STATUS[s].c}` }} />
+            <span style={{ fontSize: 11, color: T.tm, fontFamily: T.f }}>{s}</span>
+          </div>
+        ))}
+      </div>
 
       {/* 컨텐츠 */}
       <div style={{ flex: 1, overflowY: 'auto', background: T.s }}>

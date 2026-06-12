@@ -11,7 +11,7 @@ const fieldStyle: React.CSSProperties = { height: 42, borderRadius: 10, border: 
 const Label = ({ children }: { children: React.ReactNode }) => <p style={{ fontSize: 12, fontWeight: 600, color: T.tm, marginBottom: 7 }}>{children}</p>;
 
 function emptyAlbum(order: number): Album {
-  return { id: '', name: '', sub: '', year: '', versions: [], sources: [], count: 0, headerImage: null, bgImage: null, sortOrder: order, isVisible: true };
+  return { id: '', name: '', sub: '', year: '', versions: [], sources: [], count: 0, coverImage: null, headerImage: null, bgImage: null, sortOrder: order, isVisible: true };
 }
 
 export function AdminAlbums() {
@@ -112,6 +112,7 @@ export function AdminAlbums() {
               <ChipEditor label="버전 목록" items={draft.versions} onChange={(versions) => setDraft({ ...draft, versions })} addLabel="버전 추가" active />
               <ChipEditor label="구매처 목록" items={draft.sources} onChange={(sources) => setDraft({ ...draft, sources })} addLabel="구매처 추가" />
 
+              <CoverImageUpload value={draft.coverImage} onChange={(coverImage) => setDraft({ ...draft, coverImage })} />
               <ImageUpload label="헤더 이미지" value={draft.headerImage} onChange={(headerImage) => setDraft({ ...draft, headerImage })} hint="1080×320 권장" preview />
               <ImageUpload label="배경 이미지" value={draft.bgImage} onChange={(bgImage) => setDraft({ ...draft, bgImage })} hint="Supabase Storage" />
             </div>
@@ -138,6 +139,40 @@ function ChipEditor({ label, items, onChange, addLabel, active }: { label: strin
           </div>
         ))}
         <button onClick={add} style={{ height: 36, padding: '0 14px', borderRadius: 100, border: `1.5px dashed ${T.b}`, background: 'none', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}><Icon.plus c={T.tm} sz={11} /><span style={{ fontSize: 13, color: T.tm, fontWeight: 600 }}>{addLabel}</span></button>
+      </div>
+    </div>
+  );
+}
+
+function CoverImageUpload({ value, onChange }: { value?: string | null; onChange: (v: string | null) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const onFile = async (f: File | undefined) => {
+    if (!f) return;
+    setUploading(true);
+    try { onChange(await uploadImage(f, 'albums')); }
+    catch { alert('이미지 업로드에 실패했습니다.'); }
+    finally { setUploading(false); }
+  };
+  return (
+    <div style={{ gridColumn: '1 / -1' }}>
+      <Label>앨범 커버 이미지</Label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* 64×64 미리보기 */}
+        <div style={{ width: 64, height: 64, borderRadius: 12, border: `1.5px dashed ${T.b}`, background: value ? `url(${value}) center/cover` : T.bl, flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {!value && <img src={LOGO} style={{ width: '60%', opacity: 0.4 }} />}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{ fontSize: 11, color: T.tl }}>권장 사이즈: <strong style={{ color: T.tm }}>300×300</strong></p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => !uploading && ref.current?.click()} style={{ height: 36, padding: '0 16px', borderRadius: 9, background: T.p, border: 'none', cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon.upload c="#fff" sz={14} />
+              <span style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{uploading ? '업로드 중…' : value ? '이미지 교체' : '업로드'}</span>
+            </button>
+            {value && <button onClick={() => onChange(null)} style={{ height: 36, padding: '0 12px', borderRadius: 9, border: `1px solid ${T.b}`, background: T.s, cursor: 'pointer' }}><span style={{ fontSize: 13, color: T.tm }}>제거</span></button>}
+          </div>
+        </div>
+        <input ref={ref} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       </div>
     </div>
   );
