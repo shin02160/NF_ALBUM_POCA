@@ -2,11 +2,18 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
 import { T } from './theme/tokens';
+import { useIsDesktop } from './hooks/useIsDesktop';
 import { MobileShell } from './screens/mobile/MobileShell';
+import { DesktopShell } from './screens/desktop/DesktopShell';
 import { AdminLogin } from './screens/admin/AdminLogin';
 import { AdminLayout } from './screens/admin/AdminLayout';
 import { AdminCategories } from './screens/admin/AdminCategories';
 import { AdminPocas } from './screens/admin/AdminPocas';
+
+function AppShell() {
+  const isDesktop = useIsDesktop();
+  return isDesktop ? <DesktopShell /> : <MobileShell />;
+}
 
 export default function App() {
   const loadData = useStore((s) => s.loadData);
@@ -27,10 +34,10 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/category" replace />} />
-        <Route path="/category" element={<MobileShell />} />
-        <Route path="/collection" element={<MobileShell />} />
-        <Route path="/dash" element={<MobileShell />} />
-        <Route path="/book" element={<MobileShell />} />
+        <Route path="/category" element={<AppShell />} />
+        <Route path="/collection" element={<AppShell />} />
+        <Route path="/dash" element={<AppShell />} />
+        <Route path="/book" element={<AppShell />} />
         {/* 구버전 경로 호환 */}
         <Route path="/album" element={<Navigate to="/category" replace />} />
         <Route path="/list" element={<Navigate to="/category" replace />} />
