@@ -71,9 +71,10 @@ function ListView({ album, cards, statusMap, search, onCardClick }: {
     return album.versions.map((ver) => {
       const vCards = cards.filter((c) => c.version === ver && (!search || c.member.includes(search) || c.name.includes(search)));
       const sources = [...new Set(cards.filter((c) => c.version === ver).map((c) => c.source))];
+      // 멤버별로 카드를 배열로 묶음 (같은 멤버의 여러 포카 지원)
       const rows = SOLO_MEMBERS.map((m) => ({
         member: m,
-        card: vCards.find((c) => !c.member.includes(',') && c.member.trim() === m) ?? null,
+        memberCards: vCards.filter((c) => !c.member.includes(',') && c.member.trim() === m),
       }));
       return { ver, sourceLabel: sources.join(' · '), rows };
     });
@@ -88,34 +89,41 @@ function ListView({ album, cards, statusMap, search, onCardClick }: {
             {sourceLabel && <><span style={{ width: 1, height: 12, background: T.b }} /><span style={{ fontSize: 12, color: T.tm }}>{sourceLabel}</span></>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-            {rows.map(({ member, card }, mi) => (
+            {rows.map(({ member, memberCards }, mi) => (
               <div
                 key={member}
-                onClick={() => card && onCardClick(card.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px',
                   borderBottom: `1px solid ${T.bl}`,
                   borderRight: mi % 2 === 0 ? `1px solid ${T.bl}` : 'none',
-                  cursor: card ? 'pointer' : 'default',
                 }}
               >
                 <div style={{ width: 54, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: MC[member] || T.tm, flexShrink: 0 }} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: T.t }}>{member}</span>
                 </div>
-                {card
-                  ? <div style={{ width: 60 }}><PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] as any} width={60} radius={7} /></div>
-                  : <div style={{ width: 60, aspectRatio: '2/3', borderRadius: 7, background: T.bl, border: `1px dashed ${T.b}` }} />}
-                {card && statusMap[card.id] && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 600,
-                    color: STATUS[statusMap[card.id] as keyof typeof STATUS]?.c,
-                    background: STATUS[statusMap[card.id] as keyof typeof STATUS]?.bg,
-                    padding: '3px 9px', borderRadius: 100,
-                    border: `1px solid ${STATUS[statusMap[card.id] as keyof typeof STATUS]?.c}33`,
-                    whiteSpace: 'nowrap',
-                  }}>{statusMap[card.id]}</span>
-                )}
+                {/* 카드 여러 장 가로 나열 */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {memberCards.length > 0
+                    ? memberCards.map((card) => (
+                        <div key={card.id} onClick={() => onCardClick(card.id)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <div style={{ width: 54 }}>
+                            <PocaCard member={card.member} img={card.imageUrl} status={statusMap[card.id] as any} width={54} radius={6} />
+                          </div>
+                          {statusMap[card.id] && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 600,
+                              color: STATUS[statusMap[card.id] as keyof typeof STATUS]?.c,
+                              background: STATUS[statusMap[card.id] as keyof typeof STATUS]?.bg,
+                              padding: '2px 6px', borderRadius: 100,
+                              border: `1px solid ${STATUS[statusMap[card.id] as keyof typeof STATUS]?.c}33`,
+                              whiteSpace: 'nowrap',
+                            }}>{statusMap[card.id]}</span>
+                          )}
+                        </div>
+                      ))
+                    : <div style={{ width: 54, aspectRatio: '2/3', borderRadius: 6, background: T.bl, border: `1px dashed ${T.b}` }} />}
+                </div>
               </div>
             ))}
           </div>

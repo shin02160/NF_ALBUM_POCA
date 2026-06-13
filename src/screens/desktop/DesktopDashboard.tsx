@@ -34,7 +34,7 @@ const BarRow = ({ label, n, max, color, secondary, secondaryMax }: {
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
     <div style={{ width: 72, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.t, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span title={label} style={{ fontSize: 12, fontWeight: 600, color: T.t, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </div>
     <div style={{ flex: 1, height: 10, borderRadius: 100, background: T.bl, overflow: 'hidden', position: 'relative' }}>
       {secondary != null && secondaryMax ? <div style={{ position: 'absolute', inset: 0, width: `${(secondary / secondaryMax) * 100}%`, borderRadius: 100, background: color + '26' }} /> : null}
@@ -207,7 +207,7 @@ export function DesktopDashboard() {
               : ownedTopItems.map((item, i) => (
                 <div key={item.name} style={{ marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: T.t }}>{item.name}</span>
+                    <span title={item.name} style={{ fontSize: 13, fontWeight: 600, color: T.t, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>{item.name}</span>
                     <span style={{ fontSize: 12, color: T.tm }}>
                       <strong style={{ color: T.t }}>{item.owned}</strong> / {item.total}종 · {item.total ? Math.round(item.owned / item.total * 100) : 0}%
                     </span>
